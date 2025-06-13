@@ -13,7 +13,8 @@ const form = reactive({
 
 const errors = reactive({
   email: '',
-  password: ''
+  password: '',
+  form: ''
 })
 
 const isSubmitting = ref(false)
@@ -76,13 +77,36 @@ const handleSubmit = async () => {
   }
   
   isSubmitting.value = true
+  errors.form = ''
   
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    router.push('/account')
+    const response = await fetch('/api/login.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        rememberMe: form.rememberMe
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      // Show success toast
+      window.showToast('Login successful!', 'success')
+      // Redirect to account page
+      router.push('/account')
+    } else {
+      errors.form = data.error || 'Login failed. Please check your credentials.'
+      window.showToast(errors.form, 'error')
+    }
   } catch (error) {
-    alert('Login failed. Please check your credentials and try again.')
     console.error('Login error:', error)
+    errors.form = 'Login failed. Please try again.'
+    window.showToast(errors.form, 'error')
   } finally {
     isSubmitting.value = false
   }
@@ -106,6 +130,11 @@ const togglePasswordVisibility = () => {
       </div>
       <div class="auth-body">
         <form @submit.prevent="handleSubmit" novalidate class="auth-form">
+          <!-- Remove this alert div as it's causing duplicate notifications -->
+          <!-- <div v-if="errors.form" class="alert alert-danger mb-3">
+            {{ errors.form }}
+          </div> -->
+          
           <div class="mb-4">
             <label for="email" class="form-label required-field">Email and Password</label>
             <input 
@@ -170,12 +199,6 @@ const togglePasswordVisibility = () => {
             <a href="#" class="text-decoration-none">Forgot your password?</a>
           </div>
         </form>
-      </div>
-      <div class="auth-footer">
-        <p class="mb-2">New user registration</p>
-        <button @click="goToRegister" class="btn btn-outline-secondary w-100">
-          Register with email
-        </button>
       </div>
     </div>
   </div>

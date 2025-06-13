@@ -20,7 +20,8 @@ const errors = reactive({
   email: '',
   password: '',
   confirmPassword: '',
-  agreeTerms: ''
+  agreeTerms: '',
+  form: ''
 })
 
 const isSubmitting = ref(false)
@@ -121,14 +122,37 @@ const handleSubmit = async () => {
   }
   
   isSubmitting.value = true
+  errors.form = ''
   
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    alert('Registration successful! You can now log in.')
-    router.push('/login')
+    const response = await fetch('/api/register.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        password: form.password
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      // Show success toast
+      window.showToast('Registration successful! You can now log in.', 'success')
+      // Redirect to login page
+      router.push('/login')
+    } else {
+      errors.form = data.error || 'Registration failed. Please try again.'
+      // window.showToast(errors.form, 'error')
+    }
   } catch (error) {
-    alert('Registration failed. Please try again.')
     console.error('Registration error:', error)
+    errors.form = 'Registration failed. Please try again.'
+    // window.showToast(errors.form, 'error')
   } finally {
     isSubmitting.value = false
   }
@@ -156,6 +180,11 @@ const toggleConfirmPasswordVisibility = () => {
       </div>
       <div class="auth-body">
         <form @submit.prevent="handleSubmit" novalidate class="auth-form">
+          <!-- Remove this alert div as it's causing duplicate notifications -->
+            <div v-if="errors.form" class="alert alert-danger mb-3">
+            {{ errors.form }}
+          </div>
+          
           <h5 class="mb-3">Personal Information</h5>
           <div class="row mb-3">
             <div class="col-md-6 mb-3 mb-md-0">
@@ -251,7 +280,7 @@ const toggleConfirmPasswordVisibility = () => {
               id="agreeTerms" 
               v-model="form.agreeTerms"
             >
-            <label class="form-check-label" for="agreeTerms">
+            <label class="form-check-label" for="agreeTerms" style="white-space: nowrap;">
               I agree to the <a href="#">Terms and Conditions</a> and <a href="#">Privacy Policy</a>
             </label>
             <div class="invalid-feedback">{{ errors.agreeTerms }}</div>

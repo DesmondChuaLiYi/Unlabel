@@ -12,6 +12,46 @@ const searchQuery = ref('')
 const showProfileDropdown = ref(false)
 const showSearchOverlay = ref(false)
 
+// Toast notification system
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success', // success, error, warning, info
+  timeout: null
+})
+
+// Show toast message
+const showToast = (message, type = 'success', duration = 5000) => {
+  // Clear any existing timeout
+  if (toast.value.timeout) {
+    clearTimeout(toast.value.timeout)
+  }
+  
+  // Set toast properties
+  toast.value.show = true
+  toast.value.message = message
+  toast.value.type = type
+  
+  // Auto hide after duration
+  toast.value.timeout = setTimeout(() => {
+    toast.value.show = false
+  }, duration)
+}
+
+// Hide toast message
+const hideToast = () => {
+  toast.value.show = false
+  if (toast.value.timeout) {
+    clearTimeout(toast.value.timeout)
+  }
+}
+
+// Expose the showToast function to the global window object
+// so it can be accessed from other components
+onMounted(() => {
+  window.showToast = showToast
+})
+
 const toggleNavbar = () => {
   isNavCollapsed.value = !isNavCollapsed.value
 }
@@ -85,6 +125,30 @@ onUnmounted(() => {
 
 <template>
   <div>
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+      <div 
+        class="toast show" 
+        :class="{
+          'bg-success text-white': toast.type === 'success',
+          'bg-danger text-white': toast.type === 'error',
+          'bg-warning': toast.type === 'warning',
+          'bg-info': toast.type === 'info'
+        }" 
+        role="alert" 
+        aria-live="assertive" 
+        aria-atomic="true"
+        v-if="toast.show"
+      >
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ toast.message }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="hideToast"></button>
+        </div>
+      </div>
+    </div>
+    
     <!-- Search Overlay -->
     <div class="search-overlay" v-if="showSearchOverlay" @click="toggleSearch"></div>
     
@@ -260,3 +324,14 @@ onUnmounted(() => {
     </footer>
   </div>
 </template>
+
+<style>
+/* Add these styles to your existing CSS */
+.toast {
+  min-width: 350px;
+}
+
+.toast-container {
+  z-index: 1100;
+}
+</style>

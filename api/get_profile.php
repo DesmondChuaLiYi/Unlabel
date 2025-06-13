@@ -14,25 +14,23 @@ if (!isset($_SESSION['user'])) {
 require_once 'db_connect.php';
 
 try {
-    // Get user profile data
-    $stmt = $pdo->prepare("SELECT id, firstName, lastName, email, birthDate, created_dt, last_login_dt FROM user WHERE id = ?");
-    $stmt->execute([$_SESSION['user']['id']]);
+    // Get user ID from session
+    $userId = $_SESSION['user']['id'];
+    
+    // Get user data
+    $stmt = $pdo->prepare("SELECT u.id, u.firstName, u.lastName, u.email, u.phone, u.birthDate, 
+                          ua.address, ua.city, ua.state, ua.zipCode, ua.country 
+                          FROM user u 
+                          LEFT JOIN user_address ua ON u.id = ua.user_id 
+                          WHERE u.id = ?");
+    $stmt->execute([$userId]);
     $user = $stmt->fetch();
     
-    // Get user address if available
-    $stmt = $pdo->prepare("SELECT address, city, state, zipCode, country FROM user_address WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user']['id']]);
-    $address = $stmt->fetch();
-    
-    if ($address) {
-        $user['address'] = $address;
+    if ($user) {
+        echo json_encode(['user' => $user]);
+    } else {
+        echo json_encode(['error' => 'User not found']);
     }
-    
-    // Return user profile data
-    echo json_encode([
-        'success' => true,
-        'user' => $user
-    ]);
 } catch(PDOException $e) {
-    echo json_encode(['error' => 'Failed to get profile: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Failed to fetch profile: ' . $e->getMessage()]);
 }

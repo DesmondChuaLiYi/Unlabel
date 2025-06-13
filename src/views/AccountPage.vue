@@ -1,20 +1,73 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import '../assets/css/account.css'
 
-// Mock user data - in a real app, this would come from an API
+const router = useRouter()
+
+// User data state - will be populated from API
 const userData = reactive({
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@example.com',
-  phone: '+1 (555) 123-4567',
-  address: '123 Main Street',
-  city: 'Anytown',
-  state: 'CA',
-  zipCode: '12345',
-  country: 'US',
-  birthDate: '1990-01-01'
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: '',
+  state: '',
+  zipCode: '',
+  country: '',
+  birthDate: ''
 })
+
+// Check if user is logged in
+const isLoggedIn = ref(false)
+const isLoading = ref(true)
+
+// Fetch user profile data on component mount
+onMounted(async () => {
+  try {
+    const response = await fetch('/api/get_profile.php')
+    const data = await response.json()
+    
+    if (data.error) {
+      isLoggedIn.value = false
+      router.push('/login')
+    } else {
+      isLoggedIn.value = true
+      // Update userData with fetched data
+      Object.keys(data.user).forEach(key => {
+        if (key in userData) {
+          userData[key] = data.user[key]
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Failed to fetch profile:', error)
+    isLoggedIn.value = false
+  } finally {
+    isLoading.value = false
+  }
+})
+
+// Logout function
+const logout = async () => {
+  try {
+    const response = await fetch('/api/logout.php')
+    const data = await response.json()
+    
+    if (data.success) {
+      // Show success toast
+      window.showToast('Logout successful!', 'success')
+      // Redirect to login page
+      router.push('/login')
+    } else {
+      window.showToast('Logout failed. Please try again.', 'error')
+    }
+  } catch (error) {
+    console.error('Logout error:', error)
+    window.showToast('Logout failed. Please try again.', 'error')
+  }
+}
 
 // Countries list for dropdown
 const countries = [
@@ -149,98 +202,118 @@ const getStatusBadgeClass = (status) => {
 <template>
   <div class="account-page">
     <div class="container">
-      <h1 class="mb-4">My Account</h1>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>My Account</h1>
+        <button @click="logout" class="btn btn-outline-danger">
+          <i class="bi bi-box-arrow-right me-1"></i> Logout
+        </button>
+      </div>
       
-      <!-- Profile Section -->
-      <div class="full-width-container">
-        <div class="section-container">
-          <div class="section-header">
-            <h2 class="section-title">Profile Information</h2>
-            <button v-if="!isEditing" class="btn btn-outline-dark btn-sm view-all" @click="startEditing">
-              <i class="bi bi-pencil me-1"></i> Edit Profile
-            </button>
-          </div>
-          
-          <!-- View Mode -->
-          <div v-if="!isEditing" class="card account-card">
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-3 text-center mb-4 mb-md-0">
-                  <div class="placeholder-img profile-img">profile</div>
-                </div>
-                <div class="col-md-9">
-                  <div class="row mb-3">
-                    <div class="col-md-6 info-group">
-                      <p class="info-label">Name</p>
-                      <p class="info-value">{{ userData.firstName }} {{ userData.lastName }}</p>
-                    </div>
-                    <div class="col-md-6 info-group">
-                      <p class="info-label">Email</p>
-                      <p class="info-value">{{ userData.email }}</p>
-                    </div>
+      <!-- Loading state -->
+      <div v-if="isLoading" class="text-center py-5">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+      
+      <!-- Not logged in state -->
+      <div v-else-if="!isLoggedIn" class="text-center py-5">
+        <p>You are not logged in. Please <router-link to="/login">login</router-link> to view your account.</p>
+      </div>
+      
+      <!-- Logged in state - rest of the existing template -->
+      <div v-else>
+        <!-- Profile Section -->
+        <div class="full-width-container">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title">Profile Information</h2>
+              <button v-if="!isEditing" class="btn btn-outline-dark btn-sm view-all" @click="startEditing">
+                <i class="bi bi-pencil me-1"></i> Edit Profile
+              </button>
+            </div>
+            
+            <!-- View Mode -->
+            <div v-if="!isEditing" class="card account-card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3 text-center mb-4 mb-md-0">
+                    <div class="placeholder-img profile-img">profile</div>
                   </div>
-                  <div class="row mb-3">
-                    <div class="col-md-6 info-group">
-                      <p class="info-label">Phone</p>
-                      <p class="info-value">{{ userData.phone || 'Not provided' }}</p>
+                  <div class="col-md-9">
+                    <div class="row mb-3">
+                      <div class="col-md-6 info-group">
+                        <p class="info-label">Name</p>
+                        <p class="info-value">{{ userData.firstName }} {{ userData.lastName }}</p>
+                      </div>
+                      <div class="col-md-6 info-group">
+                        <p class="info-label">Email</p>
+                        <p class="info-value">{{ userData.email }}</p>
+                      </div>
                     </div>
-                    <div class="col-md-6 info-group">
-                      <p class="info-label">Birth Date</p>
-                      <p class="info-value">{{ userData.birthDate ? formatDate(userData.birthDate) : 'Not provided' }}</p>
+                    <div class="row mb-3">
+                      <div class="col-md-6 info-group">
+                        <p class="info-label">Phone</p>
+                        <p class="info-value">{{ userData.phone || 'Not provided' }}</p>
+                      </div>
+                      <div class="col-md-6 info-group">
+                        <p class="info-label">Birth Date</p>
+                        <p class="info-value">{{ userData.birthDate ? formatDate(userData.birthDate) : 'Not provided' }}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <!-- Edit Mode -->
-          <div v-else class="card account-card">
-            <div class="card-body">
-              <form @submit.prevent="saveChanges" novalidate>
-                <div class="row">
-                  <div class="col-md-3 text-center mb-4 mb-md-0">
-                    <div class="placeholder-img profile-img">profile</div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2">Change Photo</button>
+            
+            <!-- Edit Mode -->
+            <div v-else class="card account-card">
+              <div class="card-body">
+                <form @submit.prevent="saveChanges" novalidate>
+                  <div class="row">
+                    <div class="col-md-3 text-center mb-4 mb-md-0">
+                      <div class="placeholder-img profile-img">profile</div>
+                      <button type="button" class="btn btn-sm btn-outline-secondary mt-2">Change Photo</button>
+                    </div>
+                    <div class="col-md-9">
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="firstName" class="form-label">First Name</label>
+                          <input type="text" class="form-control" id="firstName" v-model="editForm.firstName" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label for="lastName" class="form-label">Last Name</label>
+                          <input type="text" class="form-control" id="lastName" v-model="editForm.lastName" required>
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="email" class="form-label">Email</label>
+                          <input type="email" class="form-control" id="email" v-model="editForm.email" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label for="phone" class="form-label">Phone</label>
+                          <input type="tel" class="form-control" id="phone" v-model="editForm.phone">
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="birthDate" class="form-label">Birth Date</label>
+                          <input type="date" class="form-control" id="birthDate" v-model="editForm.birthDate">
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div class="col-md-9">
-                    <div class="row mb-3">
-                      <div class="col-md-6">
-                        <label for="firstName" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="firstName" v-model="editForm.firstName" required>
-                      </div>
-                      <div class="col-md-6">
-                        <label for="lastName" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="lastName" v-model="editForm.lastName" required>
-                      </div>
-                    </div>
-                    <div class="row mb-3">
-                      <div class="col-md-6">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" v-model="editForm.email" required>
-                      </div>
-                      <div class="col-md-6">
-                        <label for="phone" class="form-label">Phone</label>
-                        <input type="tel" class="form-control" id="phone" v-model="editForm.phone">
-                      </div>
-                    </div>
-                    <div class="row mb-3">
-                      <div class="col-md-6">
-                        <label for="birthDate" class="form-label">Birth Date</label>
-                        <input type="date" class="form-control" id="birthDate" v-model="editForm.birthDate">
-                      </div>
-                    </div>
+                  
+                  <div class="d-flex justify-content-end mt-3">
+                    <button type="button" class="btn btn-outline-secondary me-2" @click="cancelEditing">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+                      <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                      Save Changes
+                    </button>
                   </div>
-                </div>
-                
-                <div class="d-flex justify-content-end mt-3">
-                  <button type="button" class="btn btn-outline-secondary me-2" @click="cancelEditing">Cancel</button>
-                  <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-                    <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                    Save Changes
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         </div>
