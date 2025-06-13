@@ -83,7 +83,19 @@ const changeImage = (index) => {
 
 // Navigate to product
 const goToProduct = (productId) => {
-  router.push(`/products/${productId}`)
+  // If we're already on a product page, we need to force a refresh
+  if (route.name === 'ProductDetail') {
+    // Navigate to the new product
+    router.push(`/products/${productId}`).then(() => {
+      // Force component to reload by reloading product data
+      loadProduct()
+      // Scroll to top of page
+      window.scrollTo(0, 0)
+    })
+  } else {
+    // Normal navigation if coming from another page
+    router.push(`/products/${productId}`)
+  }
 }
 
 // Get stock status
@@ -226,31 +238,29 @@ onMounted(() => {
             
             <!-- Quantity Selector -->
             <div class="quantity-selector mb-4">
-              <h6 class="mb-2">Quantity</h6>
-              <div class="quantity-controls">
+                <h6 class="mb-2">Quantity</h6>
+                <div class="quantity-controls">
                 <button 
-                  class="btn btn-outline-secondary" 
-                  @click="decreaseQuantity"
-                  :disabled="quantity <= 1"
+                    class="btn btn-outline-secondary" 
+                    @click="decreaseQuantity"
+                    :disabled="quantity <= 1"
                 >
-                  <i class="bi bi-dash"></i>
+                    <i class="bi bi-dash"></i>
                 </button>
                 <input 
-                  type="number" 
-                  class="form-control" 
-                  v-model="quantity" 
-                  min="1" 
-                  :max="product.stock"
-                  readonly
+                    type="text" 
+                    class="form-control quantity-input" 
+                    :value="quantity"
+                    readonly
                 />
                 <button 
-                  class="btn btn-outline-secondary" 
-                  @click="increaseQuantity"
-                  :disabled="quantity >= product.stock"
+                    class="btn btn-outline-secondary" 
+                    @click="increaseQuantity"
+                    :disabled="quantity >= product.stock"
                 >
-                  <i class="bi bi-plus"></i>
+                    <i class="bi bi-plus"></i>
                 </button>
-              </div>
+                </div>
             </div>
             
             <!-- Add to Cart Button -->
