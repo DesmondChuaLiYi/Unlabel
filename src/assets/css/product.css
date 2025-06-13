@@ -1,0 +1,155 @@
+/* Product Page Specific Styles */
+
+/* Product Grid */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.product-card {
+  cursor: pointer;
+  transition: transform 0.3s;
+  background-color: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.03);
+  height: 100%;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Placeholder Images */
+.product-page .placeholder-img {
+  background-color: #f0f0f0;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.9rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add styling for actual images */
+.product-page .placeholder-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.product-info {
+  padding: 15px;
+}
+
+/* Make this more specific */
+.product-card .product-title {
+  font-size: 0.9rem;
+  font-weight: 400;
+  margin-bottom: 5px;
+}
+
+.product-price {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.product-category {
+  font-size: 0.8rem;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+/* Rating Stars */
+.rating {
+  margin-bottom: 10px;
+}
+
+.rating .bi-star-fill,
+.rating .bi-star-half,
+.rating .bi-star {
+  color: #ffc107;
+  font-size: 0.8rem;
+}
+
+/* Product Actions */
+.product-actions {
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  /* margin-top: 10px; */
+  padding-bottom: 20px;
+}
+
+.product-actions .btn-outline-dark {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.product-actions .btn-outline-dark:hover {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.product-actions .btn-dark {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.product-actions .btn-dark:hover {
+  background-color: #990020;
+  border-color: #990020;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.section-title {
+  font-weight: 300;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+/* Filters */
+.filters-container {
+  background-color: #f8f9fa;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Pagination */
+.pagination .page-link {
+  color: var(--color-medium-gray);
+  border-radius: 0;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* Add this to your existing product.css file */
+.product-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+/* Add top margin to product page */
+.product-page {
+  padding-top: 40px;
+}

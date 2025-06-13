@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "name": "Organic Cotton T-Shirt",
+    "description": "Soft, breathable t-shirt made from 100% organic cotton in a minimalist design",
+    "price": 19.99,
+    "category": "Clothing",
+    "image": "/assets/img/organic_cotton_tshirt.jpg",
+    "rating": 4.5,
+    "stock": 200
+  },
+  {
+    "id": 2,
+    "name": "Linen Blend Shirt",
+    "description": "Lightweight, relaxed-fit shirt made from a cotton-linen blend for comfort",
+    "price": 39.99,
+    "category": "Clothing",
+    "image": "/assets/img/linen_blend_shirt.jpg",
+    "rating": 4.7,
+    "stock": 150
+  },
+  {
+    "id": 3,
+    "name": "Portable Bluetooth Speaker",
+    "description": "Compact, minimalist speaker with clear sound and long battery life",
+    "price": 59.99,
+    "category": "Audio & Electronics",
+    "image": "/assets/img/portable_bluetooth_speaker.jpg",
+    "rating": 4.3,
+    "stock": 80
+  },
+  {
+    "id": 4,
+    "name": "Wool Knit Scarf",
+    "description": "Warm, soft scarf made from ethically sourced wool in neutral tones",
+    "price": 29.99,
+    "category": "Accessories",
+    "image": "/assets/img/wool_knit_scarf.jpg",
+    "rating": 4.4,
+    "stock": 100
+  },
+  {
+    "id": 5,
+    "name": "Aroma Diffuser",
+    "description": "Sleek ultrasonic diffuser for essential oils with adjustable mist settings",
+    "price": 49.99,
+    "category": "Audio & Electronics",
+    "image": "/assets/img/aroma_diffuser.jpg",
+    "rating": 4.6,
+    "stock": 60
+  },
+  {
+    "id": 6,
+    "name": "Gel Ink Pen Set",
+    "description": "Set of 6 smooth-writing gel pens in a minimalist case",
+    "price": 9.99,
+    "category": "Stationery",
+    "image": "/assets/img/gel_ink_pen_set.jpg",
+    "rating": 4.2,
+    "stock": 300
+  },
+  {
+    "id": 7,
+    "name": "Recycled Paper Notebook",
+    "description": "A5 notebook with 100 pages of recycled paper and a sturdy cover",
+    "price": 7.99,
+    "category": "Stationery",
+    "image": "/assets/img/recycled_paper_notebook.jpg",
+    "rating": 4.5,
+    "stock": 250
+  },
+  {
+    "id": 8,
+    "name": "PP Storage Box",
+    "description": "Stackable polypropylene storage box with lid for home organization",
+    "price": 14.99,
+    "category": "Storage & Organization",
+    "image": "/assets/img/pp_storage_box.jpg",
+    "rating": 4.8,
+    "stock": 120
+  },
+  {
+    "id": 9,
+    "name": "Ceramic Mug",
+    "description": "Simple, durable ceramic mug with a smooth matte finish",
+    "price": 12.99,
+    "category": "Household Goods",
+    "image": "/assets/img/ceramic_mug.jpg",
+    "rating": 4.4,
+    "stock": 180
+  },
+  {
+    "id": 10,
+    "name": "Bamboo Cutlery Set",
+    "description": "Eco-friendly bamboo fork, spoon, and knife in a cotton pouch",
+    "price": 15.99,
+    "category": "Household Goods",
+    "image": "/assets/img/bamboo_cutlery_set.jpg",
+    "rating": 4.3,
+    "stock": 140
+  },
+  {
+    "id": 11,
+    "name": "Canvas Tote Bag",
+    "description": "Durable cotton canvas tote bag with reinforced handles",
+    "price": 24.99,
+    "category": "Accessories",
+    "image": "/assets/img/canvas_tote_bag.jpg",
+    "rating": 4.6,
+    "stock": 110
+  },
+  {
+    "id": 12,
+    "name": "Wall Clock",
+    "description": "Minimalist wooden wall clock with silent movement",
+    "price": 34.99,
+    "category": "Audio & Electronics",
+    "image": "/assets/img/wall_clock.jpg",
+    "rating": 4.5,
+    "stock": 70
+  }
+]

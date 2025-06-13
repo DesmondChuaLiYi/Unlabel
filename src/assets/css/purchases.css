@@ -1,0 +1,243 @@
+/* Purchases Page Specific Styles */
+
+/* Custom Badge Colors */
+.bg-medium-gray {
+  background-color: #999;
+}
+
+.bg-dark-gray {
+  background-color: #666;
+}
+
+.bg-primary {
+  background-color: var(--color-primary);
+}
+
+/* Purchase Card Styles */
+.purchase-card {
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.purchase-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.purchase-card .card-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.purchase-card .card-body {
+  padding: 20px;
+}
+
+/* Placeholder Images - make more specific */
+.purchases-page .placeholder-img {
+  background-color: var(--color-off-white);
+  height: 50px;
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 0.7rem;
+}
+
+.placeholder-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.modal .placeholder-img {
+  height: 40px;
+  width: 40px;
+}
+
+/* Filter Container */
+.filters-container {
+  background-color: #ffffff;
+  padding: 24px;
+  margin-bottom: 30px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.section-title {
+  font-weight: 300;
+  font-size: 1.5rem;
+  margin: 0;
+  color: var(--color-text);
+}
+
+/* Purchase Details Modal */
+.purchase-modal {
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+}
+
+.purchase-modal .modal-content {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.purchase-modal .modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+  background-color: #ffffff;
+}
+
+.purchase-modal .modal-body {
+  padding: 24px;
+}
+
+.purchase-modal .modal-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+  background-color: #ffffff;
+}
+
+.purchase-modal .modal-backdrop {
+  z-index: -1;
+  cursor: pointer;
+}
+
+/* Status Badges */
+.status-badge {
+  font-weight: 400;
+  padding: 0.35rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
+}
+
+/* Empty State */
+.empty-purchases {
+  padding: 4rem 1rem;
+  text-align: center;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.empty-purchases i {
+  font-size: 3.5rem;
+  color: var(--color-light-gray);
+  margin-bottom: 1.5rem;
+}
+
+/* Table Styles */
+.table-light {
+  background-color: #f8f9fa;
+}
+
+.table th {
+  font-weight: 500;
+  color: var(--color-medium-gray);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* Button Styles */
+.btn {
+  border-radius: 4px;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.3s;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+.btn-secondary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-secondary:hover {
+  background-color: #990020;
+  border-color: #990020;
+}
+
+.btn-outline-primary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn-outline-secondary {
+  color: var(--color-medium-gray);
+  border-color: var(--color-light-gray);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--color-light-gray);
+  color: var(--color-text);
+  border-color: var(--color-light-gray);
+}
+
+/* Purchases Page Container */
+.purchases-page {
+  padding: 40px 0;
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 70px);
+}
+
+.purchases-page h1 {
+  font-weight: 300;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-text);
+}
+
+/* Form Controls */
+.form-select, .form-control {
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  border-color: #e0e0e0;
+}
+
+.form-select:focus, .form-control:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 0.25rem rgba(127, 0, 25, 0.1);
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--color-medium-gray);
+  margin-bottom: 0.5rem;
+}

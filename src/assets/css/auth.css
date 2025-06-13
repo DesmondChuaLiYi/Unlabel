@@ -1,0 +1,158 @@
+/* Authentication Pages Styling */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  /* background-color: var(--color-light-blue); */
+  padding: 20px;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 650px;
+  background-color: #ffffff;
+  border-radius: 0;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.auth-header {
+  text-align: center;
+  padding: 30px 20px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.auth-logo {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.auth-title {
+  font-size: 1.2rem;
+  font-weight: 400;
+  margin-bottom: 0;
+  color: #333;
+}
+
+.auth-body {
+  padding: 10px 40px;
+}
+
+/* Improved form readability */
+.auth-form .form-control {
+  border-radius: 0;
+  padding: 14px 16px;
+  height: auto;
+  border: 1px solid #ddd;
+  font-size: 1.05rem;
+}
+
+.auth-form .form-label {
+  font-weight: 400;
+  color: #555;
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+
+.auth-form .mb-3,
+.auth-form .mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+
+.auth-form .form-control:focus {
+  box-shadow: none;
+  border-color: #999;
+}
+
+.auth-form .form-label {
+  font-weight: 400;
+  color: #555;
+}
+
+/* Scope button styles to auth pages only */
+.auth-page .btn,
+.auth-form .btn {
+  border-radius: 0;
+  padding: 12px;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: 400;
+}
+
+.auth-page .btn:hover,
+.auth-form .btn:hover {
+  background-color: #990020;
+  border-color: #990020;
+}
+
+.auth-footer {
+  padding: 10px 40px;
+  text-align: center;
+}
+
+.auth-footer a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* Required field indicator */
+.required-field::after {
+  content: "*";
+  color: var(--color-primary);
+  margin-left: 2px;
+}
+
+/* Password Toggle Button */
+.auth-form .password-toggle {
+  border-left: none;
+  background-color: #990020 !important;
+  color: #fff !important;
+  border: 1px solid #990020 !important;
+}
+
+.auth-form .password-toggle:hover {
+  background-color: #800019 !important;
+  color: #fff !important;
+  border-color: #800019 !important;
+}
+
+.auth-form .password-toggle i {
+  pointer-events: none;
+  font-size: 1.2rem;
+}
+
+/* Ensure invalid feedback is visible */
+.auth-form .invalid-feedback {
+  display: block !important; /* Force visibility */
+  color: var(--color-primary) !important; /* Match error color */
+  font-size: 0.875rem; /* Match Bootstrap default */
+  margin-top: 0.25rem; /* Space above feedback */
+  white-space: normal; /* Allow text wrapping */
+}
+
+/* Override link color and spacing in form-check-label */
+.auth-form .form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-form .form-check-label {
+  display: inline;
+  margin: 0;
+}
+
+.auth-form .form-check-label a {
+  color: var(--color-primary) !important;
+  text-decoration: underline;
+  margin: 0 4px;
+}
+
+.auth-form .form-check-label a:hover {
+  color: #800019 !important;
+  text-decoration: underline;
+}
+
+/* Placeholder for merged styles (no scoped styles to merge) */
