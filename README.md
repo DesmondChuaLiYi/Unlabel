@@ -9,14 +9,14 @@ Welcome to the Unlabel - Ecommerce Shop project! This is a web application built
    ```bash
    git clone https://github.com/DesmondChuaLiYi/Unlabel.git
    ```
-2. Move the cloned folder to your XAMPP htdocs directory
-   - Windows: `C:\xampp\htdocs\unlabel`
-   - Linux/macOS: `/opt/lampp/htdocs/unlabel`
+2. Move the cloned folder to your XAMPP htdocs directory and rename it to Project (otherwise it wouldn't work)
+   - Windows: `C:\xampp\htdocs\Project`
+   - Linux/macOS: `/opt/lampp/htdocs/Project`
 
 ### Option 2: Manual Setup
 1. Unzip the project folder and place it inside the htdocs directory of your XAMPP installation
-   - Windows: `C:\xampp\htdocs\unlabel`
-   - Linux/macOS: `/opt/lampp/htdocs/unlabel`
+   - Windows: `C:\xampp\htdocs\Project`
+   - Linux/macOS: `/opt/lampp/htdocs/Project`
 
 2. Import the Database
    1. Open phpMyAdmin
