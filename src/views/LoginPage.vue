@@ -22,14 +22,45 @@ const showPassword = ref(false);
 const alertType = ref('alert-danger');
 const showAlert = ref(false);
 
-// Check for registration success message on page load
+// Check for messages on page load
 onMounted(() => {
   const registrationSuccess = localStorage.getItem('registrationSuccess');
+  const logoutSuccess = localStorage.getItem('logoutSuccess');
+  const loginSuccess = localStorage.getItem('loginSuccess');
+  const deleteSuccess = localStorage.getItem('deleteSuccess');
+
   if (registrationSuccess) {
     errors.form = 'Account created successfully! Please log in.';
     alertType.value = 'alert-success';
     showAlert.value = true;
-    localStorage.removeItem('registrationSuccess');
+    setTimeout(() => {
+      showAlert.value = false;
+      localStorage.removeItem('registrationSuccess');
+    }, 5000);
+  } else if (logoutSuccess) {
+    errors.form = 'Log out successful!';
+    alertType.value = 'alert-success';
+    showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+      localStorage.removeItem('logoutSuccess');
+    }, 5000);
+  } else if (loginSuccess) {
+    errors.form = 'Login successful!';
+    alertType.value = 'alert-success';
+    showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+      localStorage.removeItem('loginSuccess');
+    }, 5000);
+  } else if (deleteSuccess) {
+    errors.form = 'Account deleted successfully!';
+    alertType.value = 'alert-success';
+    showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+      localStorage.removeItem('deleteSuccess');
+    }, 5000);
   }
 });
 
@@ -109,19 +140,24 @@ const handleSubmit = async () => {
     console.log('API Response:', data);
 
     if (data.success) {
-      // Store login success message in localStorage to display on account page
       localStorage.setItem('loginSuccess', 'true');
       router.push('/account');
     } else {
+      errors.form = data.error || 'Login failed. Please check your credentials.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
-      errors.form = data.error || 'Login failed. Please check your credentials.';
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
     }
   } catch (error) {
     console.error('Login error:', error);
+    errors.form = 'Login failed. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
-    errors.form = 'Login failed. Please try again.';
+    setTimeout(() => {
+      showAlert.value = false;
+    }, 5000);
   } finally {
     isSubmitting.value = false;
   }
@@ -145,7 +181,7 @@ const togglePasswordVisibility = () => {
       </div>
       <div class="auth-body">
         <form @submit.prevent="handleSubmit" novalidate class="auth-form">
-          <div v-if="showAlert && errors.form" :class="['alert', alertType, 'fade', 'show']" role="alert" class="mb-3">
+          <div v-if="showAlert && errors.form" :class="['alert', alertType, 'fade', 'show', 'mb-3']" role="alert">
             {{ errors.form }}
           </div>
 

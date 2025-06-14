@@ -57,36 +57,21 @@
   padding: 20px;
 }
 
-/* Profile Image */
-.profile-img {
+/* Profile Image - Scoped to account-page */
+.account-page .profile-img {
   height: 150px !important;
   width: 150px !important;
   border-radius: 50%;
   margin: 0 auto;
   position: relative;
+  object-fit: cover;
+  border: 1px solid var(--color-light-gray);
 }
 
 /* Avatar Wrapper */
 .avatar-wrapper {
   position: relative;
   display: inline-block;
-}
-
-.avatar-edit-icon {
-  position: absolute;
-  bottom: 5px;
-  right: 5px;
-  font-size: 1.2rem;
-  color: #007bff;
-  cursor: pointer;
-  background-color: #fff;
-  border-radius: 50%;
-  padding: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.file-input {
-  display: none; /* Hide the file input */
 }
 
 /* Info Groups */
@@ -105,8 +90,8 @@
   margin-bottom: 0;
 }
 
-/* Placeholder Images */
-.placeholder-img {
+/* Placeholder Images - Scoped to account-page */
+.account-page .placeholder-img {
   background-color: var(--color-off-white);
   height: 150px !important;
   width: 150px !important;
@@ -117,6 +102,7 @@
   font-size: 0.9rem;
   border-radius: 50%;
   transition: all 0.2s ease;
+  border: 1px solid var(--color-light-gray);
 }
 
 /* Purchase Card Styles */
@@ -188,12 +174,12 @@
 
 /* Responsive Adjustments */
 @media (max-width: 767px) {
-  .profile-img {
+  .account-page .profile-img {
     height: 120px !important;
     width: 120px !important;
   }
 
-  .placeholder-img {
+  .account-page .placeholder-img {
     height: 120px !important;
     width: 120px !important;
   }
@@ -218,7 +204,7 @@
 }
 
 /* Profile Image Placeholder */
-.profile-img-placeholder {
+.account-page .profile-img-placeholder {
   background-color: var(--color-light-teal);
   height: 120px;
   width: 120px;
@@ -261,30 +247,3 @@
 .account-page {
   padding-top: 40px;
 }
-
-
-/* Add these styles to your account.css file */
-.avatar-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.profile-img {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #eee;
-}
-
-.placeholder-img {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e9ecef;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-/* Remove the old avatar-edit-icon and file-input styles */

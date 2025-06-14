@@ -20,17 +20,21 @@ const userData = reactive({
   profile_picture: '', // For storing profile picture from database
 });
 
+// Alert system
+const errors = reactive({
+  form: '',
+});
+const alertType = ref('alert-danger');
+const showAlert = ref(false);
+
 // Check if user is logged in
 const isLoggedIn = ref(false);
 const isLoading = ref(true);
-const errors = ref('');
-const alertType = ref('alert-success');
-const showAlert = ref(false);
 
-// Separate edit modes for each section
+// Edit modes
 const isEditingProfile = ref(false);
-const isEditingAddress = ref(false);
-const isEditingPassword = ref(false);
+const isEditingPassword = ref(false); // Toggle for password fields within profile edit
+const isEditingAddress = ref(false); // Manage address edit mode
 
 // Submission states
 const isSubmittingProfile = ref(false);
@@ -51,13 +55,16 @@ const maxDate = computed(() => {
 // Fetch user profile data on component mount
 onMounted(async () => {
   try {
-    // Check for login success message
+    console.log('Mounting component, checking login state');
     const loginSuccess = localStorage.getItem('loginSuccess');
     if (loginSuccess) {
-      errors.value = 'Login successful! Welcome to your account.';
+      errors.form = 'Login successful! Welcome to your account.';
       alertType.value = 'alert-success';
       showAlert.value = true;
-      localStorage.removeItem('loginSuccess');
+      setTimeout(() => {
+        showAlert.value = false;
+        localStorage.removeItem('loginSuccess');
+      }, 5000);
     }
     
     const response = await fetch('/api/get_profile.php');
@@ -68,12 +75,12 @@ onMounted(async () => {
       router.push('/login');
     } else {
       isLoggedIn.value = true;
-      // Update userData with fetched data
       Object.keys(data.user).forEach((key) => {
         if (key in userData) {
           userData[key] = data.user[key] || '';
         }
       });
+      console.log('User data fetched:', userData);
     }
   } catch (error) {
     console.error('Failed to fetch profile:', error);
@@ -84,10 +91,12 @@ onMounted(async () => {
 });
 
 // Logout function with confirmation
+// Inside <script setup>
 const logout = async () => {
-  // Show confirmation dialog
+  console.log('Logout initiated');
   if (!confirm('Are you sure you want to log out?')) {
-    return; // User canceled logout
+    console.log('Logout canceled by user');
+    return;
   }
   
   try {
@@ -95,17 +104,25 @@ const logout = async () => {
     const data = await response.json();
 
     if (data.success) {
-      router.push('/login'); // Immediate redirect without delay
+      console.log('Logout successful, redirecting to login');
+      localStorage.setItem('logoutSuccess', 'true'); // Set logout success flag
+      router.push('/login');
     } else {
-      errors.value = 'Logout failed. Please try again.';
+      errors.form = 'Logout failed. Please try again.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
     }
   } catch (error) {
     console.error('Logout error:', error);
-    errors.value = 'Logout failed. Please try again.';
+    errors.form = 'Logout failed. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+    }, 5000);
   }
 };
 
@@ -144,6 +161,7 @@ const passwordForm = reactive({
 
 // Start editing profile
 const startEditingProfile = () => {
+  console.log('Starting profile edit');
   profileForm.firstName = userData.firstName || '';
   profileForm.lastName = userData.lastName || '';
   profileForm.email = userData.email || '';
@@ -151,10 +169,12 @@ const startEditingProfile = () => {
   profileForm.birthDate = userData.birthDate || '';
   removePhoto.value = false;
   isEditingProfile.value = true;
+  isEditingPassword.value = false; // Reset password edit state
 };
 
 // Start editing address
 const startEditingAddress = () => {
+  console.log('Starting address edit');
   addressForm.address = userData.address || '';
   addressForm.city = userData.city || '';
   addressForm.state = userData.state || '';
@@ -163,8 +183,9 @@ const startEditingAddress = () => {
   isEditingAddress.value = true;
 };
 
-// Start editing password
+// Start editing password within profile
 const startEditingPassword = () => {
+  console.log('Starting password edit within profile');
   passwordForm.currentPassword = '';
   passwordForm.newPassword = '';
   passwordForm.confirmPassword = '';
@@ -173,26 +194,26 @@ const startEditingPassword = () => {
 
 // Cancel editing functions
 const cancelEditingProfile = () => {
+  console.log('Canceling profile edit');
   isEditingProfile.value = false;
+  isEditingPassword.value = false;
   profilePhoto.value = null;
   removePhoto.value = false;
+  if (userData.profile_picture) userData.profile_picture = userData.profile_picture; // Restore original if canceled
 };
 
 const cancelEditingAddress = () => {
+  console.log('Canceling address edit');
   isEditingAddress.value = false;
-};
-
-const cancelEditingPassword = () => {
-  isEditingPassword.value = false;
 };
 
 // Save profile changes
 const saveProfileChanges = async () => {
+  console.log('Saving profile changes');
   try {
     isSubmittingProfile.value = true;
     const formData = new FormData();
     
-    // Add profile form data
     Object.keys(profileForm).forEach((key) => {
       formData.append(key, profileForm[key]);
     });
@@ -204,15 +225,23 @@ const saveProfileChanges = async () => {
       formData.append('remove_photo', 'true');
     }
 
+    if (isEditingPassword.value) {
+      Object.keys(passwordForm).forEach((key) => {
+        formData.append(key, passwordForm[key]);
+      });
+    }
+    formData.append('action', 'update_profile'); // Indicate profile update
+
     const response = await fetch('/api/update_profile.php', {
       method: 'POST',
       body: formData,
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    console.log('Raw response:', text);
+    const data = text ? JSON.parse(text) : {};
 
     if (data.success) {
-      // Update userData with new values
       Object.keys(profileForm).forEach((key) => {
         if (key in userData) {
           userData[key] = profileForm[key];
@@ -220,20 +249,34 @@ const saveProfileChanges = async () => {
       });
       userData.profile_picture = data.profile_picture || '';
       
-      errors.value = 'Profile updated successfully!';
+      if (isEditingPassword.value) {
+        errors.form = 'Profile and password updated successfully!';
+      } else {
+        errors.form = 'Profile updated successfully!';
+      }
       alertType.value = 'alert-success';
       showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
       isEditingProfile.value = false;
+      isEditingPassword.value = false;
     } else {
-      errors.value = data.error || 'Failed to update profile. Please try again.';
+      errors.form = data.error || 'Failed to update profile. Please try again.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
     }
   } catch (error) {
     console.error('Update error:', error);
-    errors.value = 'Failed to update profile. Please try again.';
+    errors.form = 'Failed to update profile. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+    }, 5000);
   } finally {
     isSubmittingProfile.value = false;
   }
@@ -241,100 +284,87 @@ const saveProfileChanges = async () => {
 
 // Save address changes
 const saveAddressChanges = async () => {
+  console.log('Saving address changes');
   try {
     isSubmittingAddress.value = true;
     const formData = new FormData();
     
-    // Add address form data
-    Object.keys(addressForm).forEach((key) => {
-      formData.append(key, addressForm[key]);
-    });
+    // Only append address-related fields
+    formData.append('address', addressForm.address);
+    formData.append('city', addressForm.city);
+    formData.append('state', addressForm.state);
+    formData.append('zipCode', addressForm.zipCode);
+    formData.append('country', addressForm.country);
+    formData.append('action', 'update_address'); // Indicate address update
 
     const response = await fetch('/api/update_profile.php', {
       method: 'POST',
       body: formData,
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    console.log('Raw response:', text);
+    // Extract JSON from response, ignoring preceding HTML
+    const jsonStart = text.indexOf('{');
+    const data = jsonStart !== -1 ? JSON.parse(text.slice(jsonStart)) : {};
 
     if (data.success) {
-      // Update userData with new values
-      Object.keys(addressForm).forEach((key) => {
-        if (key in userData) {
-          userData[key] = addressForm[key];
-        }
-      });
+      // Update only address fields in userData, preserving other data
+      userData.address = addressForm.address;
+      userData.city = addressForm.city;
+      userData.state = addressForm.state;
+      userData.zipCode = addressForm.zipCode;
+      userData.country = addressForm.country;
       
-      errors.value = 'Address updated successfully!';
+      errors.form = 'Address updated successfully!';
       alertType.value = 'alert-success';
       showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
       isEditingAddress.value = false;
     } else {
-      errors.value = data.error || 'Failed to update address. Please try again.';
+      errors.form = data.error || 'Failed to update address. Please try again.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
     }
   } catch (error) {
     console.error('Update error:', error);
-    errors.value = 'Failed to update address. Please try again.';
+    errors.form = 'Failed to update address. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+    }, 5000);
   } finally {
     isSubmittingAddress.value = false;
   }
 };
 
-// Save password changes
-const savePasswordChanges = async () => {
-  try {
-    isSubmittingPassword.value = true;
-    const formData = new FormData();
-    
-    // Add password form data
-    Object.keys(passwordForm).forEach((key) => {
-      formData.append(key, passwordForm[key]);
-    });
-
-    const response = await fetch('/api/update_profile.php', {
-      method: 'POST',
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      errors.value = 'Password updated successfully!';
-      alertType.value = 'alert-success';
-      showAlert.value = true;
-      isEditingPassword.value = false;
-    } else {
-      errors.value = data.error || 'Failed to update password. Please try again.';
-      alertType.value = 'alert-danger';
-      showAlert.value = true;
-    }
-  } catch (error) {
-    console.error('Update error:', error);
-    errors.value = 'Failed to update password. Please try again.';
-    alertType.value = 'alert-danger';
-    showAlert.value = true;
-  } finally {
-    isSubmittingPassword.value = false;
-  }
-};
-
 const togglePasswordVisibility = () => {
+  console.log('Toggling password visibility');
   showPassword.value = !showPassword.value;
 };
 
 const handlePhotoUpload = (event) => {
+  console.log('Handling photo upload:', event.target.files);
   profilePhoto.value = event.target.files[0];
-  // Preview the image
   const reader = new FileReader();
   reader.onload = (e) => {
-    userData.profile_picture = e.target.result; // Base64 for preview
+    userData.profile_picture = e.target.result; // Update preview immediately
   };
   reader.readAsDataURL(profilePhoto.value);
-  removePhoto.value = false; // Reset remove flag when uploading new photo
+  removePhoto.value = false;
+};
+
+// Remove profile picture preview
+const removePhotoPreview = () => {
+  console.log('Removing profile picture preview');
+  removePhoto.value = true;
+  userData.profile_picture = ''; // Clear immediately for preview
 };
 
 // Add formatDate function
@@ -346,6 +376,53 @@ const formatDate = (dateString) => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+// Delete account modal state
+const showDeleteModal = ref(false);
+
+// Open delete modal
+const openDeleteModal = () => {
+  console.log('Opening delete modal');
+  showDeleteModal.value = true;
+};
+
+// Delete account
+const deleteAccount = async () => {
+  console.log('Deleting account');
+  try {
+    const response = await fetch('/api/delete_account.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await response.json();
+    console.log('Delete response:', data); // Debug response
+    if (data.success) {
+      console.log('Account deletion successful');
+      showDeleteModal.value = false;
+      // Clear user data and redirect
+      Object.keys(userData).forEach(key => userData[key] = '');
+      isLoggedIn.value = false;
+      sessionStorage.clear(); // Clear session storage
+      localStorage.setItem('deleteSuccess', 'true'); // Set delete success flag
+      router.push('/login');
+    } else {
+      errors.form = data.error || 'Failed to delete account.';
+      alertType.value = 'alert-danger';
+      showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+      }, 5000);
+    }
+  } catch (error) {
+    console.error('Delete account error:', error);
+    errors.form = 'Failed to delete account.';
+    alertType.value = 'alert-danger';
+    showAlert.value = true;
+    setTimeout(() => {
+      showAlert.value = false;
+    }, 5000);
+  }
 };
 </script>
 
@@ -375,8 +452,8 @@ const formatDate = (dateString) => {
 
       <!-- Logged in state -->
       <div v-else>
-        <div v-if="showAlert && errors.value" :class="['alert', alertType]" class="mb-3">
-          {{ errors.value }}
+        <div v-if="showAlert && errors.form" :class="['alert', alertType, 'fade', 'show', 'mb-3']" role="alert">
+          {{ errors.form }}
         </div>
 
         <!-- Profile Section -->
@@ -426,15 +503,14 @@ const formatDate = (dateString) => {
             </div>
 
             <!-- Edit Mode -->
-            <div v-else class="card account-card">
+            <div v-if="isEditingProfile" class="card account-card">
               <div class="card-body">
                 <form @submit.prevent="saveProfileChanges" novalidate>
                   <div class="row">
                     <div class="col-md-3 text-center mb-4 mb-md-0">
-                      <!-- Replace the avatar-wrapper div in edit mode with this improved version -->
                       <div class="avatar-wrapper">
-                        <img v-if="userData.profile_picture" :src="userData.profile_picture" class="profile-img" alt="Profile">
-                        <div v-else class="placeholder-img profile-img">profile</div>
+                        <img v-if="userData.profile_picture && !removePhoto" :src="userData.profile_picture" class="profile-img" alt="Profile">
+                        <div v-if="!userData.profile_picture || removePhoto" class="placeholder-img profile-img">profile</div>
                         <div class="mt-3">
                           <label for="profile-photo-upload" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-upload me-1"></i> Upload Photo
@@ -446,12 +522,11 @@ const formatDate = (dateString) => {
                             @change="handlePhotoUpload" 
                             accept="image/*"
                           >
-                          
                           <button 
-                            v-if="userData.profile_picture" 
+                            v-if="userData.profile_picture && !removePhoto" 
                             type="button" 
                             class="btn btn-outline-danger btn-sm ms-2" 
-                            @click="removePhoto = true"
+                            @click="removePhotoPreview"
                           >
                             <i class="bi bi-trash me-1"></i> Remove
                           </button>
@@ -485,10 +560,63 @@ const formatDate = (dateString) => {
                           <input type="date" class="form-control" id="birthDate" v-model="profileForm.birthDate" :max="maxDate">
                         </div>
                       </div>
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <button type="button" class="btn btn-outline-dark btn-sm" @click="startEditingPassword">
+                            <i class="bi bi-pencil me-1"></i> Change Password
+                          </button>
+                        </div>
+                      </div>
+                      <div v-if="isEditingPassword" class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="currentPassword" class="form-label">Current Password</label>
+                          <div class="input-group">
+                            <input
+                              :type="showPassword ? 'text' : 'password'"
+                              class="form-control"
+                              id="currentPassword"
+                              v-model="passwordForm.currentPassword"
+                              required
+                            >
+                            <button
+                              class="btn btn-outline-secondary"
+                              type="button"
+                              @click="togglePasswordVisibility"
+                            >
+                              <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-if="isEditingPassword" class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="newPassword" class="form-label">New Password</label>
+                          <input
+                            :type="showPassword ? 'text' : 'password'"
+                            class="form-control"
+                            id="newPassword"
+                            v-model="passwordForm.newPassword"
+                            required
+                          >
+                        </div>
+                      </div>
+                      <div v-if="isEditingPassword" class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                          <input
+                            :type="showPassword ? 'text' : 'password'"
+                            class="form-control"
+                            id="confirmPassword"
+                            v-model="passwordForm.confirmPassword"
+                            required
+                          >
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div class="d-flex justify-content-end mt-3">
+                    <button v-if="isEditingPassword" type="button" class="btn btn-outline-secondary me-2" @click="isEditingPassword = false">Cancel Password</button>
                     <button type="button" class="btn btn-outline-secondary me-2" @click="cancelEditingProfile">Cancel</button>
                     <button type="submit" class="btn btn-primary" :disabled="isSubmittingProfile">
                       <span v-if="isSubmittingProfile" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -544,7 +672,7 @@ const formatDate = (dateString) => {
             </div>
 
             <!-- Edit Mode (Address) -->
-            <div v-else class="card account-card">
+            <div v-if="isEditingAddress" class="card account-card">
               <div class="card-body">
                 <form @submit.prevent="saveAddressChanges" novalidate>
                   <div class="row mb-3">
@@ -591,73 +719,42 @@ const formatDate = (dateString) => {
           </div>
         </div>
 
-        <!-- Security Section -->
+        <!-- Danger Zone Section -->
         <div class="full-width-container bg-light">
           <div class="section-container">
             <div class="section-header">
-              <h2 class="section-title">Security</h2>
-              <button v-if="!isEditingPassword" class="btn btn-outline-dark btn-sm view-all" @click="startEditingPassword">
-                <i class="bi bi-pencil me-1"></i> Change Password
-              </button>
+              <h2 class="section-title">Danger Zone</h2>
             </div>
-
-            <!-- View Mode -->
-            <div v-if="!isEditingPassword" class="card account-card">
+            <div class="card account-card border-danger">
               <div class="card-body">
-                <p class="mb-0">Password: ••••••••</p>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h5 class="mb-1">Delete Account</h5>
+                    <p class="mb-0 text-muted">Permanently delete your account and all associated data.</p>
+                  </div>
+                  <button class="btn btn-danger" @click="openDeleteModal">
+                    <i class="bi bi-trash me-1"></i> Delete Account
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Edit Mode (Password) -->
-            <div v-else class="card account-card">
-              <div class="card-body">
-                <form @submit.prevent="savePasswordChanges" novalidate>
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label for="currentPassword" class="form-label">Current Password</label>
-                      <div class="input-group">
-                        <input
-                          :type="showPassword ? 'text' : 'password'"
-                          class="form-control"
-                          id="currentPassword"
-                          v-model="passwordForm.currentPassword"
-                          required
-                        >
-                        <button
-                          class="btn btn-outline-secondary"
-                          type="button"
-                          @click="togglePasswordVisibility"
-                        >
-                          <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label for="newPassword" class="form-label">New Password</label>
-                      <input
-                        :type="showPassword ? 'text' : 'password'"
-                        class="form-control"
-                        id="newPassword"
-                        v-model="passwordForm.newPassword"
-                        required
-                      >
-                    </div>
-                  </div>
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                      <input
-                        :type="showPassword ? 'text' : 'password'"
-                        class="form-control"
-                        id="confirmPassword"
-                        v-model="passwordForm.confirmPassword"
-                        required
-                      >
-                    </div>
-                  </div>
-                </form>
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" :class="{ show: showDeleteModal }" tabindex="-1" aria-labelledby="deleteModalLabel" style="display: block;" v-if="showDeleteModal">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Account Deletion</h5>
+                <button type="button" class="btn-close" @click="showDeleteModal = false" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <p>Are you sure you want to delete your account? This action cannot be undone and will remove all your data, including purchase history and cart items.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" @click="showDeleteModal = false">Cancel</button>
+                <button type="button" class="btn btn-danger" @click="deleteAccount">Delete Account</button>
               </div>
             </div>
           </div>
