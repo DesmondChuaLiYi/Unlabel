@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
   server: {
@@ -9,7 +8,15 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost/Project/',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log(`Proxying: ${req.url} -> ${proxyReq.path}`);
+          });
+          proxy.on('error', (err, _req, _res) => {
+            console.error('Proxy Error:', err);
+          });
+        }
       }
     }
   }

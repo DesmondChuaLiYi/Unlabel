@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-// Include database connection
 require_once 'db_connect.php';
 
 // Check if it's a POST request
@@ -22,11 +21,8 @@ if (!isset($data['email']) || !isset($data['password'])) {
 $email = filter_var($data['email'], FILTER_SANITIZE_EMAIL);
 
 try {
-    // Get user and credentials
-    $stmt = $pdo->prepare("SELECT u.id, u.firstName, u.lastName, u.email, uc.password_hash 
-                          FROM user u 
-                          JOIN user_credentials uc ON u.id = uc.user_id 
-                          WHERE u.email = ?");
+    // Get user data including password_hash
+    $stmt = $pdo->prepare("SELECT id, firstName, lastName, email, password_hash FROM user WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 

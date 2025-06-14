@@ -1,124 +1,125 @@
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import '../assets/css/auth.css'
+import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
+import '../assets/css/auth.css';
 
-const router = useRouter()
+const router = useRouter();
 
 const form = reactive({
   email: '',
   password: '',
-  rememberMe: false
-})
+  rememberMe: false,
+});
 
 const errors = reactive({
   email: '',
   password: '',
-  form: ''
-})
+  form: '',
+});
 
-const isSubmitting = ref(false)
-const showPassword = ref(false)
+const isSubmitting = ref(false);
+const showPassword = ref(false);
+const alertType = ref('alert-danger'); // Explicitly control alert type
 
 const validateField = (fieldName) => {
-  errors[fieldName] = ''
+  errors[fieldName] = '';
   if (fieldName === 'email') {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (form.email.trim()) {
       if (!emailRegex.test(form.email)) {
-        errors.email = 'Please enter a valid email address'
+        errors.email = 'Please enter a valid email address';
       }
     }
   } else if (fieldName === 'password') {
     if (form.password) {
       if (form.password.length < 8) {
-        errors.password = 'Password must be at least 8 characters'
+        errors.password = 'Password must be at least 8 characters';
       } else if (!/(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*_])/.test(form.password)) {
-        errors.password = 'Password must contain at least one letter, one number, and one symbol (!@#$%^&*_)'
+        errors.password = 'Password must contain at least one letter, one number, and one symbol (!@#$%^&*_)';
       }
     }
   }
-}
+};
 
 const validateForm = () => {
-  let isValid = true
-  Object.keys(errors).forEach(key => errors[key] = '')
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  let isValid = true;
+  Object.keys(errors).forEach((key) => (errors[key] = ''));
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!form.email.trim()) {
-    errors.email = 'Email is required'
-    isValid = false
+    errors.email = 'Email is required';
+    isValid = false;
   } else if (!emailRegex.test(form.email)) {
-    errors.email = 'Please enter a valid email address'
-    isValid = false
+    errors.email = 'Please enter a valid email address';
+    isValid = false;
   }
-  
+
   if (!form.password) {
-    errors.password = 'Password is required'
-    isValid = false
+    errors.password = 'Password is required';
+    isValid = false;
   } else if (form.password.length < 8) {
-    errors.password = 'Password must be at least 8 characters'
-    isValid = false
+    errors.password = 'Password must be at least 8 characters';
+    isValid = false;
   } else if (!/(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*_])/.test(form.password)) {
-    errors.password = 'Password must contain at least one letter, one number, and one symbol (!@#$%^&*_)'
-    isValid = false
+    errors.password = 'Password must contain at least one letter, one number, and one symbol (!@#$%^&*_)';
+    isValid = false;
   }
-  
-  return isValid
-}
+
+  return isValid;
+};
 
 const handleSubmit = async () => {
   if (!validateForm()) {
-    const firstError = document.querySelector('.is-invalid')
+    const firstError = document.querySelector('.is-invalid');
     if (firstError) {
-      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    return
+    return;
   }
-  
-  isSubmitting.value = true
-  errors.form = ''
-  
+
+  isSubmitting.value = true;
+  errors.form = '';
+
   try {
     const response = await fetch('/api/login.php', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         email: form.email,
         password: form.password,
-        rememberMe: form.rememberMe
-      })
-    })
-    
-    const data = await response.json()
-    
+        rememberMe: form.rememberMe,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('API Response:', data);
+
     if (data.success) {
-      // Show success toast
-      window.showToast('Login successful!', 'success')
-      // Redirect to account page
-      router.push('/account')
+      // Store login success message in localStorage to display on account page
+      localStorage.setItem('loginSuccess', 'true');
+      router.push('/account');
     } else {
-      errors.form = data.error || 'Login failed. Please check your credentials.'
-      window.showToast(errors.form, 'error')
+      alertType.value = 'alert-danger';
+      errors.form = data.error || 'Login failed. Please check your credentials.';
     }
   } catch (error) {
-    console.error('Login error:', error)
-    errors.form = 'Login failed. Please try again.'
-    window.showToast(errors.form, 'error')
+    console.error('Login error:', error);
+    alertType.value = 'alert-danger';
+    errors.form = 'Login failed. Please try again.';
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-}
+};
 
 const goToRegister = () => {
-  router.push('/register')
-}
+  router.push('/register');
+};
 
 const togglePasswordVisibility = () => {
-  showPassword.value = !showPassword.value
-}
+  showPassword.value = !showPassword.value;
+};
 </script>
 
 <template>
@@ -130,18 +131,17 @@ const togglePasswordVisibility = () => {
       </div>
       <div class="auth-body">
         <form @submit.prevent="handleSubmit" novalidate class="auth-form">
-          <!-- Remove this alert div as it's causing duplicate notifications -->
-          <!-- <div v-if="errors.form" class="alert alert-danger mb-3">
+          <div v-if="errors.form" :class="['alert', alertType.value, 'fade', 'show']" role="alert" class="mb-3">
             {{ errors.form }}
-          </div> -->
-          
+          </div>
+
           <div class="mb-4">
             <label for="email" class="form-label required-field">Email and Password</label>
-            <input 
-              type="email" 
-              class="form-control" 
-              :class="{ 'is-invalid': errors.email }" 
-              id="email" 
+            <input
+              type="email"
+              class="form-control"
+              :class="{ 'is-invalid': errors.email }"
+              id="email"
               v-model="form.email"
               autocomplete="email"
               placeholder="Email address"
@@ -149,21 +149,21 @@ const togglePasswordVisibility = () => {
             >
             <div class="invalid-feedback">{{ errors.email }}</div>
           </div>
-          
+
           <div class="mb-4">
             <div class="input-group">
-              <input 
-                :type="showPassword ? 'text' : 'password'" 
-                class="form-control" 
-                :class="{ 'is-invalid': errors.password }" 
-                id="password" 
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                class="form-control"
+                :class="{ 'is-invalid': errors.password }"
+                id="password"
                 v-model="form.password"
                 autocomplete="current-password"
                 placeholder="Password"
                 @blur="validateField('password')"
               >
-              <button 
-                class="btn btn-outline-primary password-toggle" 
+              <button
+                class="btn btn-outline-primary password-toggle"
                 type="button"
                 @click="togglePasswordVisibility"
               >
@@ -173,32 +173,38 @@ const togglePasswordVisibility = () => {
             <div class="invalid-feedback">{{ errors.password }}</div>
             <div class="form-text">Password must be at least 8 characters and include a letter, a number, and a symbol (!@#$%^&*_)</div>
           </div>
-          
+
           <div class="mb-4 form-check">
-            <input 
-              type="checkbox" 
-              class="form-check-input" 
-              id="rememberMe" 
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="rememberMe"
               v-model="form.rememberMe"
             >
             <label class="form-check-label" for="rememberMe">Remember me</label>
           </div>
-          
+
           <div class="d-grid gap-2 mb-3">
-            <button 
-              type="submit" 
-              class="btn btn-primary" 
+            <button
+              type="submit"
+              class="btn btn-primary"
               :disabled="isSubmitting"
             >
               <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
               {{ isSubmitting ? 'Logging in...' : 'Log in' }}
             </button>
           </div>
-          
+
           <div class="text-center mb-3">
             <a href="#" class="text-decoration-none">Forgot your password?</a>
           </div>
         </form>
+      </div>
+      <div class="auth-footer">
+        <p class="mb-2">New user registration</p>
+        <button @click="goToRegister" class="btn btn-outline-secondary w-100">
+          Register with email
+        </button>
       </div>
     </div>
   </div>
