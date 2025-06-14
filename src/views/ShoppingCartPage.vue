@@ -1,41 +1,38 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import '../assets/css/cart.css'
 
 const router = useRouter()
-
-// Sample cart items - in a real app, this would come from a store or API
-const cartItems = ref([
-  {
-    id: 1,
-    name: 'Smartphone X',
-    price: 999.99,
-    image: 'https://via.placeholder.com/100',
-    quantity: 1
-  },
-  {
-    id: 3,
-    name: 'Wireless Headphones',
-    price: 249.99,
-    image: 'https://via.placeholder.com/100',
-    quantity: 2
-  }
-])
-
+const cartItems = ref([])
+const isLoading = ref(true)
+const error = ref(null)
 const shippingOptions = ref([
   { id: 1, name: 'Standard Shipping', price: 5.99, days: '5-7 business days' },
   { id: 2, name: 'Express Shipping', price: 15.99, days: '2-3 business days' },
   { id: 3, name: 'Next Day Delivery', price: 29.99, days: '1 business day' }
 ])
-
 const selectedShipping = ref(1)
+
+// Load cart
+const loadCart = async () => {
+  isLoading.value = true
+  error.value = null
+  try {
+    const response = await fetch('/api/cart_get.php')
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Failed to load cart')
+    cartItems.value = data.cartItems
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // Computed properties
 const subtotal = computed(() => {
-  return cartItems.value.reduce((total, item) => {
-    return total + (item.price * item.quantity)
-  }, 0)
+  return cartItems.value.reduce((total, item) => total + (item.product_price * item.quantity), 0)
 })
 
 const shippingCost = computed(() => {
@@ -52,26 +49,66 @@ const isEmpty = computed(() => {
 })
 
 // Methods
-const updateQuantity = (item, newQuantity) => {
+const updateQuantity = async (item, newQuantity) => {
   if (newQuantity < 1) return
-  
-  const index = cartItems.value.findIndex(i => i.id === item.id)
-  if (index !== -1) {
-    cartItems.value[index].quantity = newQuantity
+  try {
+    const response = await fetch('/api/cart_update.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart_item_id: item.id, quantity: newQuantity })
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Failed to update quantity')
+    await loadCart()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
   }
 }
 
-const removeItem = (itemId) => {
-  cartItems.value = cartItems.value.filter(item => item.id !== itemId)
+const removeItem = async (cartItemId) => {
+  try {
+    const response = await fetch('/api/cart_remove.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart_item_id: cartItemId })
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Failed to remove item')
+    await loadCart()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
 }
 
-const clearCart = () => {
-  cartItems.value = []
+const clearCart = async () => {
+  try {
+    for (const item of cartItems.value) {
+      await fetch('/api/cart_remove.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart_item_id: item.id })
+      })
+    }
+    await loadCart()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
 }
 
-const checkout = () => {
-  alert('Proceeding to checkout...')
-  // In a real app, this would navigate to a checkout page or process
+const checkout = async () => {
+  try {
+    const response = await fetch('/api/cart_checkout.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shipping_option_id: selectedShipping.value })
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Failed to checkout')
+    alert('Checkout successful!')
+    router.push('/purchases')
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
 }
 
 const continueShopping = () => {
@@ -84,13 +121,28 @@ const formatPrice = (price) => {
     currency: 'USD'
   }).format(price)
 }
+
+onMounted(loadCart)
 </script>
 
 <template>
   <div class="cart-page page-container">
     <h1 class="mb-4">Shopping Cart</h1>
     
-    <div v-if="isEmpty" class="text-center py-5 empty-cart">
+    <div v-if="isLoading" class="text-center py-5">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3">Loading cart...</p>
+    </div>
+    
+    <div v-else-if="error" class="text-center py-5">
+      <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
+      <p class="mt-3 text-danger">{{ error }}</p>
+      <button class="btn btn-primary" @click="loadCart">Retry</button>
+    </div>
+    
+    <div v-else-if="isEmpty" class="text-center py-5 empty-cart">
       <i class="bi bi-cart-x fs-1 text-muted"></i>
       <h3 class="mt-3">Your cart is empty</h3>
       <p class="text-muted">Looks like you haven't added any products to your cart yet.</p>
@@ -100,7 +152,6 @@ const formatPrice = (price) => {
     </div>
     
     <div v-else class="row">
-      <!-- Cart Items -->
       <div class="col-lg-8 mb-4">
         <div class="card">
           <div class="card-header bg-white">
@@ -127,9 +178,12 @@ const formatPrice = (price) => {
                   <tr v-for="item in cartItems" :key="item.id" class="cart-item">
                     <td>
                       <div class="d-flex align-items-center">
-                        <div class="placeholder-img">product</div>
+                        <div class="placeholder-img">
+                          <img v-if="item.product_image && !item.product_image.includes('placeholder')" :src="item.product_image" :alt="item.product_name" />
+                          <template v-else>product</template>
+                        </div>
                         <div>
-                          <h6 class="mb-0">{{ item.name }}</h6>
+                          <h6 class="mb-0">{{ item.product_name }}</h6>
                         </div>
                       </div>
                     </td>
@@ -158,8 +212,8 @@ const formatPrice = (price) => {
                         </button>
                       </div>
                     </td>
-                    <td class="text-end">{{ formatPrice(item.price) }}</td>
-                    <td class="text-end">{{ formatPrice(item.price * item.quantity) }}</td>
+                    <td class="text-end">{{ formatPrice(item.product_price) }}</td>
+                    <td class="text-end">{{ formatPrice(item.product_price * item.quantity) }}</td>
                     <td class="text-end">
                       <button 
                         @click="removeItem(item.id)" 
@@ -177,7 +231,6 @@ const formatPrice = (price) => {
         </div>
       </div>
       
-      <!-- Order Summary -->
       <div class="col-lg-4">
         <div class="card">
           <div class="card-header bg-white">

@@ -1,46 +1,10 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import '../assets/css/purchases.css'
 
-// Mock purchase data
-const purchases = ref([
-  {
-    id: 'ORD-12345',
-    date: '2023-05-15',
-    status: 'Delivered',
-    total: 129.99,
-    items: [
-      { id: 1, name: 'Smartphone X', price: 99.99, quantity: 1, image: '/assets/img/smartphone_x.jpg' },
-      { id: 5, name: 'Wireless Earbuds', price: 29.99, quantity: 1, image: '/assets/img/wireless_earbuds.jpg' }
-    ],
-    shippingAddress: '123 Main St, Anytown, CA 12345',
-    trackingNumber: 'TRK123456789'
-  },
-  {
-    id: 'ORD-67890',
-    date: '2023-06-20',
-    status: 'Shipped',
-    total: 1499.99,
-    items: [
-      { id: 2, name: 'Laptop Pro', price: 1499.99, quantity: 1, image: '/assets/img/laptop_pro.jpg' }
-    ],
-    shippingAddress: '123 Main St, Anytown, CA 12345',
-    trackingNumber: 'TRK987654321'
-  },
-  {
-    id: 'ORD-54321',
-    date: '2023-07-05',
-    status: 'Processing',
-    total: 249.97,
-    items: [
-      { id: 3, name: 'Wireless Headphones', price: 149.99, quantity: 1, image: '/assets/img/wireless_headphones.jpg' },
-      { id: 4, name: 'Smart Watch', price: 99.98, quantity: 1, image: '/assets/img/smart_watch.jpg' }
-    ],
-    shippingAddress: '123 Main St, Anytown, CA 12345',
-    trackingNumber: null
-  }
-])
-
+const purchases = ref([])
+const isLoading = ref(true)
+const error = ref(null)
 const selectedPurchase = ref(null)
 
 const filters = reactive({
@@ -70,6 +34,22 @@ const sortOptions = [
   { value: 'total', label: 'Order Total' },
   { value: 'status', label: 'Order Status' }
 ]
+
+// Load purchases
+const loadPurchases = async () => {
+  isLoading.value = true
+  error.value = null
+  try {
+    const response = await fetch('/api/purchases_get.php')
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Failed to load purchases')
+    purchases.value = data.purchases
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const filteredPurchases = computed(() => {
   let result = [...purchases.value]
@@ -160,6 +140,8 @@ const getStatusBadgeClass = (status) => {
       return 'bg-secondary text-white'
   }
 }
+
+onMounted(loadPurchases)
 </script>
 
 <template>
@@ -167,184 +149,194 @@ const getStatusBadgeClass = (status) => {
     <div class="container">
       <h1 class="mb-4">My Purchases</h1>
       
-      <!-- Filters and Sorting -->
-      <div class="filters-container mb-4">
-        <div class="section-header mb-3">
-          <h2 class="section-title">Filters</h2>
-          <span class="badge bg-light text-dark">{{ filteredPurchases.length }} orders</span>
+      <div v-if="isLoading" class="text-center py-5">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label for="statusFilter" class="form-label">Filter by Status</label>
-            <select id="statusFilter" class="form-select" v-model="filters.status">
-              <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
+        <p class="mt-3">Loading purchases...</p>
+      </div>
+      
+      <div v-else-if="error" class="text-center py-5">
+        <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
+        <p class="mt-3 text-danger">{{ error }}</p>
+        <button class="btn btn-primary" @click="loadPurchases">Retry</button>
+      </div>
+      
+      <div v-else>
+        <div class="filters-container mb-4">
+          <div class="section-header mb-3">
+            <h2 class="section-title">Filters</h2>
+            <span class="badge bg-light text-dark">{{ filteredPurchases.length }} orders</span>
           </div>
-          <div class="col-md-3">
-            <label for="dateFilter" class="form-label">Filter by Date</label>
-            <select id="dateFilter" class="form-select" v-model="filters.dateRange">
-              <option v-for="option in dateRangeOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label for="sortBy" class="form-label">Sort by</label>
-            <div class="input-group">
-              <select id="sortBy" class="form-select" v-model="filters.sortBy">
-                <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label for="statusFilter" class="form-label">Filter by Status</label>
+              <select id="statusFilter" class="form-select" v-model="filters.status">
+                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
               </select>
-              <button 
-                class="btn btn-outline-secondary" 
-                type="button"
-                @click="toggleSortDirection"
-              >
-                <i :class="filters.sortDirection === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'"></i>
-              </button>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Section Header -->
-      <div class="section-header mb-4">
-        <h2 class="section-title">Order History</h2>
-      </div>
-      
-      <!-- Purchase List -->
-      <div v-if="filteredPurchases.length > 0">
-        <div class="card mb-3 purchase-card" v-for="purchase in filteredPurchases" :key="purchase.id">
-          <div class="card-header">
-            <div>
-              <span class="fw-bold">Order #{{ purchase.id }}</span>
-              <span class="text-muted ms-3">{{ formatDate(purchase.date) }}</span>
+            <div class="col-md-3">
+              <label for="dateFilter" class="form-label">Filter by Date</label>
+              <select id="dateFilter" class="form-select" v-model="filters.dateRange">
+                <option v-for="option in dateRangeOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
             </div>
-            <span class="badge status-badge" :class="getStatusBadgeClass(purchase.status)">
-              {{ purchase.status }}
-            </span>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-8">
-                <div class="d-flex align-items-center mb-3" v-for="item in purchase.items.slice(0, 2)" :key="item.id">
-                  <div class="placeholder-img">
-                    <img v-if="item.image && !item.image.includes('placeholder')" :src="item.image" :alt="item.name" />
-                    <template v-else>product</template>
-                  </div>
-                  <div>
-                    <div class="fw-medium">{{ item.name }}</div>
-                    <div class="text-muted">{{ formatCurrency(item.price) }} × {{ item.quantity }}</div>
-                  </div>
-                </div>
-                <div v-if="purchase.items.length > 2" class="text-muted mt-2">
-                  + {{ purchase.items.length - 2 }} more items
-                </div>
-              </div>
-              <div class="col-md-4 text-md-end d-flex flex-column justify-content-between">
-                <div class="fw-bold mb-3">Total: {{ formatCurrency(purchase.total) }}</div>
-                <button class="btn btn-outline-primary" @click="viewPurchaseDetails(purchase)">
-                  View Details
+            <div class="col-md-4">
+              <label for="sortBy" class="form-label">Sort by</label>
+              <div class="input-group">
+                <select id="sortBy" class="form-select" v-model="filters.sortBy">
+                  <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+                <button 
+                  class="btn btn-outline-secondary" 
+                  type="button"
+                  @click="toggleSortDirection"
+                >
+                  <i :class="filters.sortDirection === 'asc' ? 'bi bi-sort-up' : 'bi bi-sort-down'"></i>
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Empty State -->
-      <div v-else class="card empty-purchases">
-        <div class="card-body text-center py-5">
-          <i class="bi bi-bag-x"></i>
-          <h4 class="mt-3">No orders found</h4>
-          <p class="text-muted">Try changing your filters or check back later.</p>
+        
+        <div class="section-header mb-4">
+          <h2 class="section-title">Order History</h2>
         </div>
-      </div>
-      
-      <!-- Purchase Details Modal -->
-      <div class="modal fade show purchase-modal" v-if="selectedPurchase" style="display: block;" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Order Details - #{{ selectedPurchase.id }}</h5>
-              <button type="button" class="btn-close" @click="closePurchaseDetails"></button>
+        
+        <div v-if="filteredPurchases.length > 0">
+          <div class="card mb-3 purchase-card" v-for="purchase in filteredPurchases" :key="purchase.id">
+            <div class="card-header">
+              <div>
+                <span class="fw-bold">Order #{{ purchase.id }}</span>
+                <span class="text-muted ms-3">{{ formatDate(purchase.date) }}</span>
+              </div>
+              <span class="badge status-badge" :class="getStatusBadgeClass(purchase.status)">
+                {{ purchase.status }}
+              </span>
             </div>
-            <div class="modal-body">
-              <div class="row mb-4">
-                <div class="col-md-6">
-                  <h6 class="mb-3">Order Information</h6>
-                  <p class="mb-1"><strong>Date:</strong> {{ formatDate(selectedPurchase.date) }}</p>
-                  <p class="mb-1">
-                    <strong>Status:</strong> 
-                    <span class="badge status-badge" :class="getStatusBadgeClass(selectedPurchase.status)">
-                      {{ selectedPurchase.status }}
-                    </span>
-                  </p>
-                  <p class="mb-1"><strong>Total:</strong> {{ formatCurrency(selectedPurchase.total) }}</p>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-8">
+                  <div class="d-flex align-items-center mb-3" v-for="item in purchase.items.slice(0, 2)" :key="item.id">
+                    <div class="placeholder-img">
+                      <img v-if="item.image && !item.image.includes('placeholder')" :src="item.image" :alt="item.name" />
+                      <template v-else>product</template>
+                    </div>
+                    <div>
+                      <div class="fw-medium">{{ item.name }}</div>
+                      <div class="text-muted">{{ formatCurrency(item.price) }} × {{ item.quantity }}</div>
+                    </div>
+                  </div>
+                  <div v-if="purchase.items.length > 2" class="text-muted mt-2">
+                    + {{ purchase.items.length - 2 }} more items
+                  </div>
                 </div>
-                <div class="col-md-6">
-                  <h6 class="mb-3">Shipping Information</h6>
-                  <p class="mb-1"><strong>Address:</strong> {{ selectedPurchase.shippingAddress }}</p>
-                  <p class="mb-1">
-                    <strong>Tracking Number:</strong> 
-                    {{ selectedPurchase.trackingNumber || 'Not available yet' }}
-                  </p>
+                <div class="col-md-4 text-md-end d-flex flex-column justify-content-between">
+                  <div class="fw-bold mb-3">Total: {{ formatCurrency(purchase.total) }}</div>
+                  <button class="btn btn-outline-primary" @click="viewPurchaseDetails(purchase)">
+                    View Details
+                  </button>
                 </div>
               </div>
-              
-              <h6 class="mb-3">Order Items</h6>
-              <div class="table-responsive">
-                <table class="table">
-                  <thead class="table-light">
-                    <tr>
-                      <th>Product</th>
-                      <th class="text-center">Price</th>
-                      <th class="text-center">Quantity</th>
-                      <th class="text-end">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in selectedPurchase.items" :key="item.id">
-                      <td>
-                        <div class="d-flex align-items-center">
-                          <div class="placeholder-img">
-                            <img v-if="item.image && !item.image.includes('placeholder')" :src="item.image" :alt="item.name" />
-                            <template v-else>product</template>
-                          </div>
-                          <div>{{ item.name }}</div>
-                        </div>
-                      </td>
-                      <td class="text-center">{{ formatCurrency(item.price) }}</td>
-                      <td class="text-center">{{ item.quantity }}</td>
-                      <td class="text-end">{{ formatCurrency(item.price * item.quantity) }}</td>
-                    </tr>
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
-                      <td class="text-end">{{ formatCurrency(selectedPurchase.total) }}</td>
-                    </tr>
-                    <tr>
-                      <td colspan="3" class="text-end"><strong>Shipping:</strong></td>
-                      <td class="text-end">$0.00</td>
-                    </tr>
-                    <tr>
-                      <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                      <td class="text-end fw-bold">{{ formatCurrency(selectedPurchase.total) }}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" @click="closePurchaseDetails">Close</button>
             </div>
           </div>
         </div>
-        <div class="modal-backdrop fade show" @click="closePurchaseDetails"></div>
+        
+        <div v-else class="card empty-purchases">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-bag-x"></i>
+            <h4 class="mt-3">No orders found</h4>
+            <p class="text-muted">Try changing your filters or check back later.</p>
+          </div>
+        </div>
+        
+        <div class="modal fade show purchase-modal" v-if="selectedPurchase" style="display: block;" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Order Details - #{{ selectedPurchase.id }}</h5>
+                <button type="button" class="btn-close" @click="closePurchaseDetails"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row mb-4">
+                  <div class="col-md-6">
+                    <h6 class="mb-3">Order Information</h6>
+                    <p class="mb-1"><strong>Date:</strong> {{ formatDate(selectedPurchase.date) }}</p>
+                    <p class="mb-1">
+                      <strong>Status:</strong> 
+                      <span class="badge status-badge" :class="getStatusBadgeClass(selectedPurchase.status)">
+                        {{ selectedPurchase.status }}
+                      </span>
+                    </p>
+                    <p class="mb-1"><strong>Total:</strong> {{ formatCurrency(selectedPurchase.total) }}</p>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="mb-3">Shipping Information</h6>
+                    <p class="mb-1"><strong>Address:</strong> {{ selectedPurchase.shippingAddress }}</p>
+                    <p class="mb-1">
+                      <strong>Tracking Number:</strong> 
+                      {{ selectedPurchase.trackingNumber || 'Not available yet' }}
+                    </p>
+                  </div>
+                </div>
+                
+                <h6 class="mb-3">Order Items</h6>
+                <div class="table-responsive">
+                  <table class="table">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Product</th>
+                        <th class="text-center">Price</th>
+                        <th class="text-center">Quantity</th>
+                        <th class="text-end">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in selectedPurchase.items" :key="item.id">
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <div class="placeholder-img">
+                              <img v-if="item.image && !item.image.includes('placeholder')" :src="item.image" :alt="item.name" />
+                              <template v-else>product</template>
+                            </div>
+                            <div>{{ item.name }}</div>
+                          </div>
+                        </td>
+                        <td class="text-center">{{ formatCurrency(item.price) }}</td>
+                        <td class="text-center">{{ item.quantity }}</td>
+                        <td class="text-end">{{ formatCurrency(item.price * item.quantity) }}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                        <td class="text-end">{{ formatCurrency(selectedPurchase.total - (selectedPurchase.shippingCost || 0)) }}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="3" class="text-end"><strong>Shipping:</strong></td>
+                        <td class="text-end">{{ formatCurrency(selectedPurchase.shippingCost || 0) }}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                        <td class="text-end fw-bold">{{ formatCurrency(selectedPurchase.total) }}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" @click="closePurchaseDetails">Close</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-backdrop fade show" @click="closePurchaseDetails"></div>
+        </div>
       </div>
     </div>
   </div>

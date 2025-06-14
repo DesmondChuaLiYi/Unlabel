@@ -147,8 +147,19 @@ const changePage = (page) => {
   }
 }
 
-const addToCart = (product) => {
-  alert(`Added ${product.name} to cart!`)
+const addToCart = async (product) => {
+  try {
+    const response = await fetch('/api/cart_add.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: product.id, quantity: 1 })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
+    alert(`Added ${product.name} to cart!`);
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
 }
 
 const formatPrice = (price) => {
@@ -167,14 +178,12 @@ const setCategoryFromRoute = () => {
     selectedCategory.value = 'All'
   }
   
-  // Set search query from URL if present
   if (route.query.search) {
     searchQuery.value = route.query.search
   } else {
     searchQuery.value = ''
   }
   
-  // Reset to first page when filters change
   currentPage.value = 1
 }
 
@@ -187,6 +196,10 @@ onMounted(async () => {
 watch(() => route.query.category, () => {
   setCategoryFromRoute()
 })
+
+watch(() => route.query, () => {
+  setCategoryFromRoute()
+}, { deep: true })
 </script>
 
 <template>
@@ -195,7 +208,6 @@ watch(() => route.query.category, () => {
       <h1 class="section-title">Products</h1>
     </div>
     
-    <!-- Loading State -->
     <div v-if="isLoading" class="text-center py-5">
       <div class="spinner-border" role="status">
         <span class="visually-hidden">Loading...</span>
@@ -203,16 +215,13 @@ watch(() => route.query.category, () => {
       <p class="mt-3">Loading products...</p>
     </div>
     
-    <!-- Error State -->
     <div v-else-if="error" class="text-center py-5">
       <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
       <p class="mt-3 text-danger">{{ error }}</p>
       <button class="btn btn-primary" @click="loadProducts">Retry</button>
     </div>
     
-    <!-- Content -->
     <div v-else>
-      <!-- Filters and Search -->
       <div class="filters-container">
         <div class="row">
           <div class="col-md-4 mb-3">
@@ -258,7 +267,6 @@ watch(() => route.query.category, () => {
         </div>
       </div>
       
-      <!-- Results Summary -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <p class="mb-0" id="products-top">
           Showing {{ filteredProducts.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0 }} - 
@@ -267,7 +275,6 @@ watch(() => route.query.category, () => {
         </p>
       </div>
       
-      <!-- Products Grid -->
       <div v-if="filteredProducts.length === 0" class="text-center py-5">
         <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
         <p class="mt-3 text-danger">No products available.</p>
@@ -326,7 +333,6 @@ watch(() => route.query.category, () => {
         </div>
       </div>
       
-      <!-- Pagination -->
       <nav v-if="totalPages > 1" class="mt-4">
         <ul class="pagination justify-content-center">
           <li class="page-item" :class="{ disabled: currentPage === 1 }">
@@ -363,8 +369,3 @@ watch(() => route.query.category, () => {
     </div>
   </div>
 </template>
-
-// Watch for changes in route query parameters
-watch(() => route.query, () => {
-  setCategoryFromRoute()
-}, { deep: true })

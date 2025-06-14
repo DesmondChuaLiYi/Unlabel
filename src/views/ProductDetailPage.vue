@@ -33,12 +33,10 @@ const loadProduct = async () => {
     
     product.value = foundProduct
     
-    // Set default color if available
     if (product.value.colors && product.value.colors.length > 0) {
       selectedColor.value = product.value.colors[0]
     }
     
-    // Get random recommended products (excluding current product)
     const otherProducts = products.filter(p => p.id !== productId)
     const shuffled = [...otherProducts].sort(() => 0.5 - Math.random())
     recommendedProducts.value = shuffled.slice(0, 4)
@@ -70,10 +68,19 @@ const decreaseQuantity = () => {
 }
 
 // Add to cart
-const addToCart = () => {
-  // In a real app, this would add the product to the cart
-  // For now, just show an alert
-  alert(`Added ${quantity.value} ${product.value.name} to cart`)
+const addToCart = async () => {
+  try {
+    const response = await fetch('/api/cart_add.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: product.value.id, quantity: quantity.value })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
+    alert(`Added ${quantity.value} ${product.value.name} to cart`);
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
 }
 
 // Change selected image
@@ -83,17 +90,12 @@ const changeImage = (index) => {
 
 // Navigate to product
 const goToProduct = (productId) => {
-  // If we're already on a product page, we need to force a refresh
   if (route.name === 'ProductDetail') {
-    // Navigate to the new product
     router.push(`/products/${productId}`).then(() => {
-      // Force component to reload by reloading product data
       loadProduct()
-      // Scroll to top of page
       window.scrollTo(0, 0)
     })
   } else {
-    // Normal navigation if coming from another page
     router.push(`/products/${productId}`)
   }
 }
@@ -107,7 +109,6 @@ const stockStatus = computed(() => {
   return 'Out of Stock'
 })
 
-// Get stock status class
 const stockStatusClass = computed(() => {
   if (!product.value) return ''
   
@@ -116,7 +117,6 @@ const stockStatusClass = computed(() => {
   return 'text-danger'
 })
 
-// Load product on mount
 onMounted(() => {
   loadProduct()
 })
@@ -125,7 +125,6 @@ onMounted(() => {
 <template>
   <div class="page-container product-detail-page">
     <div class="container">
-      <!-- Breadcrumb -->
       <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
           <li class="breadcrumb-item"><router-link to="/">Home</router-link></li>
@@ -135,7 +134,6 @@ onMounted(() => {
         </ol>
       </nav>
       
-      <!-- Loading State -->
       <div v-if="isLoading" class="text-center py-5">
         <div class="spinner-border" role="status">
           <span class="visually-hidden">Loading...</span>
@@ -143,16 +141,13 @@ onMounted(() => {
         <p class="mt-3">Loading product details...</p>
       </div>
       
-      <!-- Error State -->
       <div v-else-if="error" class="text-center py-5">
         <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
         <p class="mt-3 text-danger">{{ error }}</p>
         <button class="btn btn-primary" @click="loadProduct">Retry</button>
       </div>
       
-      <!-- Product Details -->
       <div v-else-if="product" class="row">
-        <!-- Product Images -->
         <div class="col-lg-6 mb-4 mb-lg-0">
           <div class="product-images">
             <div class="main-image">
@@ -165,7 +160,6 @@ onMounted(() => {
               <div v-else class="placeholder-img">No image available</div>
             </div>
             
-            <!-- Thumbnail Images (if we had multiple images) -->
             <div class="thumbnail-container mt-3">
               <div 
                 class="thumbnail" 
@@ -179,21 +173,14 @@ onMounted(() => {
                 />
                 <div v-else class="placeholder-img small">No image</div>
               </div>
-              <!-- Additional thumbnails would go here -->
             </div>
           </div>
         </div>
         
-        <!-- Product Info -->
         <div class="col-lg-6">
           <div class="product-info-container">
-            <!-- Product ID -->
             <div class="product-id mb-2">SKU #{{ product.id.toString().padStart(6, '0') }}</div>
-            
-            <!-- Product Name -->
             <h1 class="product-title mb-3">{{ product.name }}</h1>
-            
-            <!-- Product Rating -->
             <div class="rating mb-3">
               <i 
                 v-for="i in 5" 
@@ -206,16 +193,10 @@ onMounted(() => {
               ></i>
               <span class="ms-2 text-muted">{{ product.rating }} ({{ Math.floor(product.rating * 10) }} reviews)</span>
             </div>
-            
-            <!-- Product Price -->
             <div class="product-price mb-4">{{ formatPrice(product.price) }}</div>
-            
-            <!-- Product Description -->
             <div class="product-description mb-4">
               <p>{{ product.description }}</p>
             </div>
-            
-            <!-- Color Selection (if available) -->
             <div v-if="product.colors && product.colors.length > 0" class="color-selection mb-4">
               <h6 class="mb-2">Color: {{ selectedColor }}</h6>
               <div class="color-options">
@@ -230,13 +211,9 @@ onMounted(() => {
                 ></button>
               </div>
             </div>
-            
-            <!-- Stock Status -->
             <div class="stock-status mb-4">
               <span :class="stockStatusClass">{{ stockStatus }}</span>
             </div>
-            
-            <!-- Quantity Selector -->
             <div class="quantity-selector mb-4">
                 <h6 class="mb-2">Quantity</h6>
                 <div class="quantity-controls">
@@ -262,8 +239,6 @@ onMounted(() => {
                 </button>
                 </div>
             </div>
-            
-            <!-- Add to Cart Button -->
             <div class="add-to-cart mb-4">
               <button 
                 class="btn btn-dark w-100 py-3" 
@@ -274,8 +249,6 @@ onMounted(() => {
                 Add to Cart
               </button>
             </div>
-            
-            <!-- Additional Info -->
             <div class="additional-info">
               <div class="shipping-info mb-2">
                 <i class="bi bi-truck me-2"></i>
@@ -290,14 +263,12 @@ onMounted(() => {
         </div>
       </div>
       
-      <!-- Product Not Found -->
       <div v-else class="text-center py-5">
         <i class="bi bi-question-circle fs-1 text-muted"></i>
         <p class="mt-3 text-muted">Product not found</p>
         <router-link to="/products" class="btn btn-primary">Browse Products</router-link>
       </div>
       
-      <!-- Product Details Tabs (for additional information) -->
       <div v-if="product" class="product-details-tabs mt-5">
         <ul class="nav nav-tabs" id="productTabs" role="tablist">
           <li class="nav-item" role="presentation">
@@ -368,7 +339,6 @@ onMounted(() => {
                 </tr>
               </tbody>
             </table>
-            
             <h5 class="mt-4">Care Instructions</h5>
             <p>Please refer to the product label for specific care instructions.</p>
           </div>
@@ -385,7 +355,6 @@ onMounted(() => {
               <li>Standard Shipping (3-5 business days): $5.99</li>
               <li>Express Shipping (1-2 business days): $12.99</li>
             </ul>
-            
             <h5 class="mt-4">Return Policy</h5>
             <p>We accept returns within 30 days of purchase. Items must be unused and in original packaging.</p>
           </div>
@@ -398,8 +367,6 @@ onMounted(() => {
           >
             <h5>Customer Reviews</h5>
             <p>This product has an average rating of {{ product.rating }} out of 5 stars.</p>
-            
-            <!-- Mock Reviews -->
             <div class="review-item p-3 border-bottom">
               <div class="d-flex justify-content-between">
                 <h6>Great product!</h6>
@@ -414,7 +381,6 @@ onMounted(() => {
               <p class="text-muted small mb-2">By John D. on March 15, 2023</p>
               <p>This product exceeded my expectations. The quality is excellent and it looks even better in person.</p>
             </div>
-            
             <div class="review-item p-3 border-bottom">
               <div class="d-flex justify-content-between">
                 <h6>Good value</h6>
@@ -433,7 +399,6 @@ onMounted(() => {
         </div>
       </div>
       
-      <!-- Related Products -->
       <div v-if="product" class="related-products mt-5">
         <h3 class="section-title mb-4">You May Also Like</h3>
         <div class="row">
