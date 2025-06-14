@@ -27,7 +27,9 @@ const errors = reactive({
 const isSubmitting = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-const success = ref(false); // Track success state
+const success = ref(false);
+const alertType = ref('alert-danger');
+const showAlert = ref(false);
 
 const validateField = (fieldName) => {
   errors[fieldName] = '';
@@ -157,10 +159,14 @@ const handleSubmit = async () => {
       localStorage.setItem('registrationSuccess', 'true');
       router.push('/login');
     } else {
+      alertType.value = 'alert-danger';
+      showAlert.value = true;
       errors.form = data.error || 'Registration failed. Please try again.';
     }
   } catch (error) {
     console.error('Registration error:', error);
+    alertType.value = 'alert-danger';
+    showAlert.value = true;
     errors.form = 'Registration failed. Please try again.';
   } finally {
     isSubmitting.value = false;
@@ -189,7 +195,7 @@ const toggleConfirmPasswordVisibility = () => {
       </div>
       <div class="auth-body">
         <form @submit.prevent="handleSubmit" novalidate class="auth-form">
-          <div v-if="errors.form" :class="['alert', success.value ? 'alert-success' : 'alert-danger']" class="mb-3">
+          <div v-if="showAlert && errors.form" :class="['alert', alertType]" class="mb-3">
             {{ errors.form }}
           </div>
 

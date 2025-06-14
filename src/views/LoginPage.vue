@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import '../assets/css/auth.css';
 
@@ -19,7 +19,19 @@ const errors = reactive({
 
 const isSubmitting = ref(false);
 const showPassword = ref(false);
-const alertType = ref('alert-danger'); // Explicitly control alert type
+const alertType = ref('alert-danger');
+const showAlert = ref(false);
+
+// Check for registration success message on page load
+onMounted(() => {
+  const registrationSuccess = localStorage.getItem('registrationSuccess');
+  if (registrationSuccess) {
+    errors.form = 'Account created successfully! Please log in.';
+    alertType.value = 'alert-success';
+    showAlert.value = true;
+    localStorage.removeItem('registrationSuccess');
+  }
+});
 
 const validateField = (fieldName) => {
   errors[fieldName] = '';
@@ -102,11 +114,13 @@ const handleSubmit = async () => {
       router.push('/account');
     } else {
       alertType.value = 'alert-danger';
+      showAlert.value = true;
       errors.form = data.error || 'Login failed. Please check your credentials.';
     }
   } catch (error) {
     console.error('Login error:', error);
     alertType.value = 'alert-danger';
+    showAlert.value = true;
     errors.form = 'Login failed. Please try again.';
   } finally {
     isSubmitting.value = false;
@@ -131,7 +145,7 @@ const togglePasswordVisibility = () => {
       </div>
       <div class="auth-body">
         <form @submit.prevent="handleSubmit" novalidate class="auth-form">
-          <div v-if="errors.form" :class="['alert', alertType.value, 'fade', 'show']" role="alert" class="mb-3">
+          <div v-if="showAlert && errors.form" :class="['alert', alertType, 'fade', 'show']" role="alert" class="mb-3">
             {{ errors.form }}
           </div>
 
