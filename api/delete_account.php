@@ -1,7 +1,24 @@
 <?php
-header('Content-Type: application/json');
+  ini_set('display_errors', 0); // Disable direct error output
+  ini_set('log_errors', 1);
+  ini_set('error_log', __DIR__ . '/php_errors.log'); // Log to file
+  error_reporting(E_ALL);
 
-session_start();
+  ob_start(); // Start output buffering
+  header('Content-Type: application/json');
+  header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com'); // Specific origin
+  header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+  header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+  header('Access-Control-Allow-Credentials: true'); // Enable credentials
+
+  if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+      error_log('checkout.php: Handling OPTIONS request');
+      http_response_code(200);
+      ob_end_clean();
+      exit;
+  }
+
+  session_start(); // Moved after CORS headers
 
 if (!isset($_SESSION['user'])) {
     echo json_encode(['error' => 'Not authenticated']);

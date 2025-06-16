@@ -16,54 +16,59 @@ const selectedShipping = ref(1)
 
 // Load cart
 const loadCart = async () => {
-  isLoading.value = true
-  error.value = null
+  isLoading.value = true;
+  error.value = null;
   try {
-    const response = await fetch('/api/cart_get.php')
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'Failed to load cart')
-    cartItems.value = data.cartItems
+    const response = await fetch('/api/cart_get.php');
+    const text = await response.text();
+    console.log('Raw API Response:', text);
+    const data = JSON.parse(text);
+    if (!response.ok) throw new Error(data.error || 'Failed to load cart');
+    if (data.success && Array.isArray(data.cartItems)) {
+      cartItems.value = data.cartItems;
+    } else {
+      throw new Error('Invalid cart data format');
+    }
   } catch (err) {
-    error.value = err.message
+    error.value = `Failed to load cart: ${err.message}`;
+    console.error('Cart load error:', err, text);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-}
+};
 
-// Computed properties
 const subtotal = computed(() => {
-  return cartItems.value.reduce((total, item) => total + (item.product_price * item.quantity), 0)
-})
+  return cartItems.value.reduce((total, item) => total + (item.product_price * item.quantity), 0);
+});
 
 const shippingCost = computed(() => {
-  const selected = shippingOptions.value.find(option => option.id === selectedShipping.value)
-  return selected ? selected.price : 0
-})
+  const selected = shippingOptions.value.find(option => option.id === selectedShipping.value);
+  return selected ? selected.price : 0;
+});
 
 const total = computed(() => {
-  return subtotal.value + shippingCost.value
-})
+  return subtotal.value + shippingCost.value;
+});
 
 const isEmpty = computed(() => {
-  return cartItems.value.length === 0
-})
+  return cartItems.value.length === 0;
+});
 
-// Methods
 const updateQuantity = async (item, newQuantity) => {
-  if (newQuantity < 1) return
+  if (newQuantity < 1) return;
   try {
     const response = await fetch('/api/cart_update.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cart_item_id: item.id, quantity: newQuantity })
-    })
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'Failed to update quantity')
-    await loadCart()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update quantity');
+    await loadCart();
   } catch (err) {
-    alert(`Error: ${err.message}`)
+    alert(`Error: ${err.message}`);
   }
-}
+};
 
 const removeItem = async (cartItemId) => {
   try {
@@ -71,14 +76,14 @@ const removeItem = async (cartItemId) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cart_item_id: cartItemId })
-    })
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'Failed to remove item')
-    await loadCart()
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to remove item');
+    await loadCart();
   } catch (err) {
-    alert(`Error: ${err.message}`)
+    alert(`Error: ${err.message}`);
   }
-}
+};
 
 const clearCart = async () => {
   try {
@@ -87,13 +92,13 @@ const clearCart = async () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cart_item_id: item.id })
-      })
+      });
     }
-    await loadCart()
+    await loadCart();
   } catch (err) {
-    alert(`Error: ${err.message}`)
+    alert(`Error: ${err.message}`);
   }
-}
+};
 
 const checkout = async () => {
   try {
@@ -101,28 +106,28 @@ const checkout = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shipping_option_id: selectedShipping.value })
-    })
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'Failed to checkout')
-    alert('Checkout successful!')
-    router.push('/purchases')
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to checkout');
+    alert('Checkout successful!');
+    router.push('/purchases');
   } catch (err) {
-    alert(`Error: ${err.message}`)
+    alert(`Error: ${err.message}`);
   }
-}
+};
 
 const continueShopping = () => {
-  router.push('/products')
-}
+  router.push('/products');
+};
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
-  }).format(price)
-}
+  }).format(price);
+};
 
-onMounted(loadCart)
+onMounted(loadCart);
 </script>
 
 <template>

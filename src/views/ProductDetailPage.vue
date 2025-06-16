@@ -73,6 +73,7 @@ const addToCart = async () => {
     const response = await fetch('/api/cart_add.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Send cookies
       body: JSON.stringify({ product_id: product.value.id, quantity: quantity.value })
     });
     const data = await response.json();
@@ -81,7 +82,7 @@ const addToCart = async () => {
   } catch (err) {
     alert(`Error: ${err.message}`);
   }
-}
+};
 
 // Change selected image
 const changeImage = (index) => {

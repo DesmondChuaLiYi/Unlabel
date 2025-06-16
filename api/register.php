@@ -1,11 +1,32 @@
 <?php
+ini_set('display_errors', 0); // Disable direct error output
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_errors.log'); // Log to file
+error_reporting(E_ALL);
+
+ob_start(); // Start output buffering
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com'); // Specific origin
+header('Access-Control-Allow-Methods: POST, OPTIONS'); // Methods used
+header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+header('Access-Control-Allow-Credentials: true'); // Enable credentials for potential session use
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    error_log('register.php: Handling OPTIONS request');
+    http_response_code(200);
+    ob_end_clean();
+    exit;
+}
+
+session_start(); // Moved after CORS headers 
 
 require_once 'db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Only POST requests are allowed']);
+    $response = json_encode(['error' => 'Only POST requests are allowed']);
+    ob_end_clean();
+    echo $response;
     exit;
 }
 
@@ -13,7 +34,9 @@ $data = json_decode(file_get_contents('php://input'), true);
 
 if (!isset($data['firstName']) || !isset($data['lastName']) || !isset($data['email']) || !isset($data['password'])) {
     http_response_code(400);
-    echo json_encode(['error' => 'Missing required fields']);
+    $response = json_encode(['error' => 'Missing required fields']);
+    ob_end_clean();
+    echo $response;
     exit;
 }
 
@@ -23,7 +46,9 @@ $email = filter_var($data['email'], FILTER_SANITIZE_EMAIL);
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid email format']);
+    $response = json_encode(['error' => 'Invalid email format']);
+    ob_end_clean();
+    echo $response;
     exit;
 }
 
@@ -32,7 +57,9 @@ try {
     $stmt->execute([$email]);
     if ($stmt->fetchColumn() > 0) {
         http_response_code(409);
-        echo json_encode(['error' => 'Email already registered']);
+        $response = json_encode(['error' => 'Email already registered']);
+        ob_end_clean();
+        echo $response;
         exit;
     }
 
@@ -53,13 +80,30 @@ try {
     // Commit transaction
     $pdo->commit();
 
-    echo json_encode([
+    $response = json_encode([
         'success' => true,
         'message' => 'Registration successful',
         'userId' => $userId
     ]);
+    ob_end_clean();
+    echo $response;
 } catch (PDOException $e) {
     $pdo->rollBack();
     http_response_code(500);
-    echo json_encode(['error' => 'Registration failed: ' . $e->getMessage()]);
+    $response = json_encode(['error' => 'Registration failed: ' . $e->getMessage()]);
+    ob_end_clean();
+    echo $response;
+    error_log('register.php: PDO Error - ' . $e->getMessage());
 }
+
+// Catch fatal errors
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        error_log('register.php: Fatal error - ' . json_encode($error));
+        http_response_code(500);
+        ob_end_clean();
+        echo json_encode(['error' => 'Server error: Fatal error occurred']);
+    }
+});
+?>

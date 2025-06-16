@@ -1,11 +1,10 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import '../assets/css/account.css';
+import axios from 'axios'; // Add this import
 
 const router = useRouter();
 
-// User data state - will be populated from API
 const userData = reactive({
   firstName: '',
   lastName: '',
@@ -17,116 +16,82 @@ const userData = reactive({
   zipCode: '',
   country: '',
   birthDate: '',
-  profile_picture: '', // For storing profile picture from database
+  profile_picture: '',
 });
 
-// Alert system
-const errors = reactive({
-  form: '',
-});
+const errors = reactive({ form: '' });
 const alertType = ref('alert-danger');
 const showAlert = ref(false);
 
-// Check if user is logged in
 const isLoggedIn = ref(false);
 const isLoading = ref(true);
 
-// Edit modes
 const isEditingProfile = ref(false);
-const isEditingPassword = ref(false); // Toggle for password fields within profile edit
-const isEditingAddress = ref(false); // Manage address edit mode
+const isEditingPassword = ref(false);
+const isEditingAddress = ref(false);
 
-// Submission states
 const isSubmittingProfile = ref(false);
 const isSubmittingAddress = ref(false);
 const isSubmittingPassword = ref(false);
 
-// Other state variables
 const showPassword = ref(false);
 const profilePhoto = ref(null);
 const removePhoto = ref(false);
 
-// Maximum date for birth date (today)
 const maxDate = computed(() => {
   const today = new Date();
   return today.toISOString().split('T')[0];
 });
 
-// Fetch user profile data on component mount
 onMounted(async () => {
   try {
-    console.log('Mounting component, checking login state');
-    const loginSuccess = localStorage.getItem('loginSuccess');
-    if (loginSuccess) {
-      errors.form = 'Login successful! Welcome to your account.';
-      alertType.value = 'alert-success';
-      showAlert.value = true;
-      setTimeout(() => {
-        showAlert.value = false;
-        localStorage.removeItem('loginSuccess');
-      }, 5000);
-    }
-    
-    const response = await fetch('/api/get_profile.php');
-    const data = await response.json();
-
-    if (data.error) {
-      isLoggedIn.value = false;
-      router.push('/login');
-    } else {
+    const response = await axios.get('/api/check_session.php', { withCredentials: true });
+    const data = response.data;
+    console.log('Session check response:', data);
+    if (data.success) {
       isLoggedIn.value = true;
       Object.keys(data.user).forEach((key) => {
-        if (key in userData) {
-          userData[key] = data.user[key] || '';
-        }
+        if (key in userData) userData[key] = data.user[key] || '';
       });
-      console.log('User data fetched:', userData);
+    } else {
+      isLoggedIn.value = false;
+      router.push('/login');
     }
   } catch (error) {
-    console.error('Failed to fetch profile:', error);
+    console.error('Session check failed:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
     isLoggedIn.value = false;
+    router.push('/login');
   } finally {
     isLoading.value = false;
   }
 });
 
-// Logout function with confirmation
-// Inside <script setup>
 const logout = async () => {
-  console.log('Logout initiated');
-  if (!confirm('Are you sure you want to log out?')) {
-    console.log('Logout canceled by user');
-    return;
-  }
-  
+  if (!confirm('Are you sure you want to log out?')) return;
   try {
-    const response = await fetch('/api/logout.php');
-    const data = await response.json();
-
-    if (data.success) {
-      console.log('Logout successful, redirecting to login');
-      localStorage.setItem('logoutSuccess', 'true'); // Set logout success flag
+    const response = await axios.get('/api/logout.php', { withCredentials: true });
+    if (response.data.success) {
+      localStorage.setItem('logoutSuccess', 'true');
       router.push('/login');
     } else {
       errors.form = 'Logout failed. Please try again.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
-      setTimeout(() => {
-        showAlert.value = false;
-      }, 5000);
+      setTimeout(() => (showAlert.value = false), 5000);
     }
   } catch (error) {
     console.error('Logout error:', error);
     errors.form = 'Logout failed. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
-    setTimeout(() => {
-      showAlert.value = false;
-    }, 5000);
+    setTimeout(() => (showAlert.value = false), 5000);
   }
 };
 
-// Countries list for dropdown
 const countries = [
   { code: 'MY', name: 'Malaysia' },
   { code: 'US', name: 'United States' },
@@ -136,7 +101,6 @@ const countries = [
   { code: 'JP', name: 'Japan' },
 ];
 
-// Forms for editing each section
 const profileForm = reactive({
   firstName: '',
   lastName: '',
@@ -159,9 +123,7 @@ const passwordForm = reactive({
   confirmPassword: '',
 });
 
-// Start editing profile
 const startEditingProfile = () => {
-  console.log('Starting profile edit');
   profileForm.firstName = userData.firstName || '';
   profileForm.lastName = userData.lastName || '';
   profileForm.email = userData.email || '';
@@ -169,12 +131,10 @@ const startEditingProfile = () => {
   profileForm.birthDate = userData.birthDate || '';
   removePhoto.value = false;
   isEditingProfile.value = true;
-  isEditingPassword.value = false; // Reset password edit state
+  isEditingPassword.value = false;
 };
 
-// Start editing address
 const startEditingAddress = () => {
-  console.log('Starting address edit');
   addressForm.address = userData.address || '';
   addressForm.city = userData.city || '';
   addressForm.state = userData.state || '';
@@ -183,72 +143,55 @@ const startEditingAddress = () => {
   isEditingAddress.value = true;
 };
 
-// Start editing password within profile
 const startEditingPassword = () => {
-  console.log('Starting password edit within profile');
   passwordForm.currentPassword = '';
   passwordForm.newPassword = '';
   passwordForm.confirmPassword = '';
   isEditingPassword.value = true;
 };
 
-// Cancel editing functions
 const cancelEditingProfile = () => {
-  console.log('Canceling profile edit');
   isEditingProfile.value = false;
   isEditingPassword.value = false;
   profilePhoto.value = null;
   removePhoto.value = false;
-  if (userData.profile_picture) userData.profile_picture = userData.profile_picture; // Restore original if canceled
+  if (userData.profile_picture) userData.profile_picture = userData.profile_picture;
 };
 
 const cancelEditingAddress = () => {
-  console.log('Canceling address edit');
   isEditingAddress.value = false;
 };
 
-// Save profile changes
 const saveProfileChanges = async () => {
-  console.log('Saving profile changes');
   try {
     isSubmittingProfile.value = true;
     const formData = new FormData();
-    
     Object.keys(profileForm).forEach((key) => {
       formData.append(key, profileForm[key]);
     });
-    
     if (profilePhoto.value) {
       formData.append('profile_photo', profilePhoto.value);
     }
     if (removePhoto.value) {
       formData.append('remove_photo', 'true');
     }
-
     if (isEditingPassword.value) {
       Object.keys(passwordForm).forEach((key) => {
         formData.append(key, passwordForm[key]);
       });
     }
-    formData.append('action', 'update_profile'); // Indicate profile update
+    formData.append('action', 'update_profile');
 
-    const response = await fetch('/api/update_profile.php', {
-      method: 'POST',
-      body: formData,
+    const response = await axios.post('/api/update_profile.php', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    const text = await response.text();
-    console.log('Raw response:', text);
-    const data = text ? JSON.parse(text) : {};
-
+    const data = response.data;
     if (data.success) {
       Object.keys(profileForm).forEach((key) => {
-        if (key in userData) {
-          userData[key] = profileForm[key];
-        }
+        if (key in userData) userData[key] = profileForm[key];
       });
       userData.profile_picture = data.profile_picture || '';
-      
       if (isEditingPassword.value) {
         errors.form = 'Profile and password updated successfully!';
       } else {
@@ -256,118 +199,89 @@ const saveProfileChanges = async () => {
       }
       alertType.value = 'alert-success';
       showAlert.value = true;
-      setTimeout(() => {
-        showAlert.value = false;
-      }, 5000);
+      setTimeout(() => (showAlert.value = false), 5000);
       isEditingProfile.value = false;
       isEditingPassword.value = false;
     } else {
       errors.form = data.error || 'Failed to update profile. Please try again.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
-      setTimeout(() => {
-        showAlert.value = false;
-      }, 5000);
+      setTimeout(() => (showAlert.value = false), 5000);
     }
   } catch (error) {
     console.error('Update error:', error);
     errors.form = 'Failed to update profile. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
-    setTimeout(() => {
-      showAlert.value = false;
-    }, 5000);
+    setTimeout(() => (showAlert.value = false), 5000);
   } finally {
     isSubmittingProfile.value = false;
   }
 };
 
-// Save address changes
 const saveAddressChanges = async () => {
-  console.log('Saving address changes');
   try {
     isSubmittingAddress.value = true;
     const formData = new FormData();
-    
-    // Only append address-related fields
     formData.append('address', addressForm.address);
     formData.append('city', addressForm.city);
     formData.append('state', addressForm.state);
     formData.append('zipCode', addressForm.zipCode);
     formData.append('country', addressForm.country);
-    formData.append('action', 'update_address'); // Indicate address update
+    formData.append('action', 'update_address');
 
-    const response = await fetch('/api/update_profile.php', {
-      method: 'POST',
-      body: formData,
+    const response = await axios.post('/api/update_profile.php', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    const text = await response.text();
-    console.log('Raw response:', text);
-    // Extract JSON from response, ignoring preceding HTML
-    const jsonStart = text.indexOf('{');
-    const data = jsonStart !== -1 ? JSON.parse(text.slice(jsonStart)) : {};
-
+    const data = response.data;
     if (data.success) {
-      // Update only address fields in userData, preserving other data
       userData.address = addressForm.address;
       userData.city = addressForm.city;
       userData.state = addressForm.state;
       userData.zipCode = addressForm.zipCode;
       userData.country = addressForm.country;
-      
       errors.form = 'Address updated successfully!';
       alertType.value = 'alert-success';
       showAlert.value = true;
-      setTimeout(() => {
-        showAlert.value = false;
-      }, 5000);
+      setTimeout(() => (showAlert.value = false), 5000);
       isEditingAddress.value = false;
     } else {
       errors.form = data.error || 'Failed to update address. Please try again.';
       alertType.value = 'alert-danger';
       showAlert.value = true;
-      setTimeout(() => {
-        showAlert.value = false;
-      }, 5000);
+      setTimeout(() => (showAlert.value = false), 5000);
     }
   } catch (error) {
     console.error('Update error:', error);
     errors.form = 'Failed to update address. Please try again.';
     alertType.value = 'alert-danger';
     showAlert.value = true;
-    setTimeout(() => {
-      showAlert.value = false;
-    }, 5000);
+    setTimeout(() => (showAlert.value = false), 5000);
   } finally {
     isSubmittingAddress.value = false;
   }
 };
 
 const togglePasswordVisibility = () => {
-  console.log('Toggling password visibility');
   showPassword.value = !showPassword.value;
 };
 
 const handlePhotoUpload = (event) => {
-  console.log('Handling photo upload:', event.target.files);
   profilePhoto.value = event.target.files[0];
   const reader = new FileReader();
   reader.onload = (e) => {
-    userData.profile_picture = e.target.result; // Update preview immediately
+    userData.profile_picture = e.target.result;
   };
   reader.readAsDataURL(profilePhoto.value);
   removePhoto.value = false;
 };
 
-// Remove profile picture preview
 const removePhotoPreview = () => {
-  console.log('Removing profile picture preview');
   removePhoto.value = true;
-  userData.profile_picture = ''; // Clear immediately for preview
+  userData.profile_picture = '';
 };
 
-// Add formatDate function
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -378,33 +292,22 @@ const formatDate = (dateString) => {
   });
 };
 
-// Delete account modal state
 const showDeleteModal = ref(false);
 
-// Open delete modal
 const openDeleteModal = () => {
-  console.log('Opening delete modal');
   showDeleteModal.value = true;
 };
 
-// Delete account
 const deleteAccount = async () => {
-  console.log('Deleting account');
   try {
-    const response = await fetch('/api/delete_account.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await response.json();
-    console.log('Delete response:', data); // Debug response
+    const response = await axios.post('/api/delete_account.php', {}, { withCredentials: true });
+    const data = response.data;
     if (data.success) {
-      console.log('Account deletion successful');
       showDeleteModal.value = false;
-      // Clear user data and redirect
       Object.keys(userData).forEach(key => userData[key] = '');
       isLoggedIn.value = false;
-      sessionStorage.clear(); // Clear session storage
-      localStorage.setItem('deleteSuccess', 'true'); // Set delete success flag
+      sessionStorage.clear();
+      localStorage.setItem('deleteSuccess', 'true');
       router.push('/login');
     } else {
       errors.form = data.error || 'Failed to delete account.';
@@ -436,27 +339,23 @@ const deleteAccount = async () => {
         </button>
       </div>
 
-      <!-- Loading state -->
       <div v-if="isLoading" class="text-center py-5">
         <div class="spinner-border" role="status">
           <span class="visually-hidden">Loading...</span>
         </div>
       </div>
 
-      <!-- Not logged in state -->
       <div v-else-if="!isLoggedIn" class="text-center py-5">
         <p>
           You are not logged in. Please <router-link to="/login">login</router-link> to view your account.
         </p>
       </div>
 
-      <!-- Logged in state -->
       <div v-else>
         <div v-if="showAlert && errors.form" :class="['alert', alertType, 'fade', 'show', 'mb-3']" role="alert">
           {{ errors.form }}
         </div>
 
-        <!-- Profile Section -->
         <div class="full-width-container">
           <div class="section-container">
             <div class="section-header">
@@ -466,7 +365,6 @@ const deleteAccount = async () => {
               </button>
             </div>
 
-            <!-- View Mode -->
             <div v-if="!isEditingProfile" class="card account-card">
               <div class="card-body">
                 <div class="row">
@@ -502,7 +400,6 @@ const deleteAccount = async () => {
               </div>
             </div>
 
-            <!-- Edit Mode -->
             <div v-if="isEditingProfile" class="card account-card">
               <div class="card-body">
                 <form @submit.prevent="saveProfileChanges" novalidate>
@@ -629,7 +526,6 @@ const deleteAccount = async () => {
           </div>
         </div>
 
-        <!-- Address Section -->
         <div class="full-width-container bg-light">
           <div class="section-container">
             <div class="section-header">
@@ -639,7 +535,6 @@ const deleteAccount = async () => {
               </button>
             </div>
 
-            <!-- View Mode -->
             <div v-if="!isEditingAddress" class="card account-card">
               <div class="card-body">
                 <div class="row mb-3">
@@ -671,7 +566,6 @@ const deleteAccount = async () => {
               </div>
             </div>
 
-            <!-- Edit Mode (Address) -->
             <div v-if="isEditingAddress" class="card account-card">
               <div class="card-body">
                 <form @submit.prevent="saveAddressChanges" novalidate>
@@ -719,7 +613,6 @@ const deleteAccount = async () => {
           </div>
         </div>
 
-        <!-- Danger Zone Section -->
         <div class="full-width-container bg-light">
           <div class="section-container">
             <div class="section-header">
@@ -741,7 +634,6 @@ const deleteAccount = async () => {
           </div>
         </div>
 
-        <!-- Delete Confirmation Modal -->
         <div class="modal fade" :class="{ show: showDeleteModal }" tabindex="-1" aria-labelledby="deleteModalLabel" style="display: block;" v-if="showDeleteModal">
           <div class="modal-dialog">
             <div class="modal-content">

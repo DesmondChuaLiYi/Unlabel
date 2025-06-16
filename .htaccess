@@ -1,0 +1,40 @@
+# Handle Vue Router history mode
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Don't rewrite files or directories that exist
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Allow direct access to API folder
+  RewriteRule ^api/ - [L]
+
+  # Rewrite all other requests to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Set security headers
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set X-Frame-Options "SAMEORIGIN"
+
+  # Enable CORS for PHP files
+  <FilesMatch "\.(php)$">
+    Header always set Access-Control-Allow-Origin "https://unlabel.lovestoblog.com"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept"
+    Header always set Access-Control-Allow-Credentials "true"
+  </FilesMatch>
+</IfModule>
+
+# PHP settings
+<IfModule mod_php7.c>
+  php_value upload_max_filesize 10M
+  php_value post_max_size 10M
+  php_value max_execution_time 300
+  php_value max_input_time 300
+  php_value session.cookie_httponly 1
+</IfModule>

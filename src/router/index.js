@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
   {
@@ -41,11 +41,11 @@ const routes = [
     name: 'Purchases',
     component: () => import('../views/PurchasePage.vue')
   }
-]
+];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/'), // Base URL for root path
   routes
-})
+});
 
-export default router
+export default router;

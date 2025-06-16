@@ -1,7 +1,24 @@
 <?php
-header('Content-Type: application/json');
+ini_set('display_errors', 0); // Disable direct error output
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_errors.log'); // Log to file
+error_reporting(E_ALL);
 
-session_start();
+ob_start(); // Start output buffering
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com'); // Specific origin
+header('Access-Control-Allow-Methods: POST, OPTIONS'); // Methods used
+header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+header('Access-Control-Allow-Credentials: true'); // Enable credentials for potential session use
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    error_log('register.php: Handling OPTIONS request');
+    http_response_code(200);
+    ob_end_clean();
+    exit;
+}
+
+session_start(); // Moved after CORS headers 
 
 if (!isset($_SESSION['user'])) {
     echo json_encode(['error' => 'Not authenticated']);
@@ -78,21 +95,26 @@ try {
         if ($removePhoto) {
             $stmt = $pdo->prepare("UPDATE user SET profile_picture = NULL WHERE id = ?");
             $stmt->execute([$userId]);
+            if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/uploads/profile_' . $userId . '.jpg')) {
+                unlink($_SERVER['DOCUMENT_ROOT'] . '/uploads/profile_' . $userId . '.jpg');
+            }
         } elseif ($profilePhoto && $profilePhoto['error'] === UPLOAD_ERR_OK) {
-            $imageData = file_get_contents($profilePhoto['tmp_name']);
-            $stmt = $pdo->prepare("UPDATE user SET profile_picture = ? WHERE id = ?");
-            $stmt->execute([$imageData, $userId]);
-            $stmt = $pdo->prepare("SELECT profile_picture FROM user WHERE id = ?");
-            $stmt->execute([$userId]);
-            $profilePicture = $stmt->fetchColumn();
+            $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/';
+            if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
+            $fileName = 'profile_' . $userId . '.jpg';
+            $targetFile = $uploadDir . $fileName;
+            if (move_uploaded_file($profilePhoto['tmp_name'], $targetFile)) {
+                $stmt = $pdo->prepare("UPDATE user SET profile_picture = ? WHERE id = ?");
+                $stmt->execute(['/uploads/' . $fileName, $userId]);
+                $profilePicture = '/uploads/' . $fileName;
+            }
         } else {
             $stmt = $pdo->prepare("SELECT profile_picture FROM user WHERE id = ?");
             $stmt->execute([$userId]);
             $profilePicture = $stmt->fetchColumn();
         }
 
-        $base64Image = $profilePicture ? 'data:image/jpeg;base64,' . base64_encode($profilePicture) : '';
-        echo json_encode(['success' => true, 'profile_picture' => $base64Image]);
+        echo json_encode(['success' => true, 'profile_picture' => $profilePicture]);
     }
 } catch (PDOException | Exception $e) {
     ob_clean(); // Clear any output buffer

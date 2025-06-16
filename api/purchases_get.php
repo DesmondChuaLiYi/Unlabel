@@ -1,6 +1,24 @@
 <?php
+ini_set('display_errors', 0); // Disable direct error output
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_errors.log'); // Log to file
+error_reporting(E_ALL);
+
+ob_start(); // Start output buffering
 header('Content-Type: application/json');
-session_start();
+header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com'); // Specific origin
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS'); // Methods used
+header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+header('Access-Control-Allow-Credentials: true'); // Enable credentials for session
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    error_log('logout.php: Handling OPTIONS request');
+    http_response_code(200);
+    ob_end_clean();
+    exit;
+}
+
+session_start(); // Moved after CORS headers
 
 if (!isset($_SESSION['user'])) {
     http_response_code(401);

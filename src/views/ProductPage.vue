@@ -149,18 +149,23 @@ const changePage = (page) => {
 
 const addToCart = async (product) => {
   try {
+    console.log('Adding to cart:', { product_id: product.id, quantity: 1 });
     const response = await fetch('/api/cart_add.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: product.id, quantity: 1 })
+      credentials: 'include',
+      body: JSON.stringify({ product_id: product.id, quantity: 1 }),
     });
-    const data = await response.json();
+    const text = await response.text();
+    console.log('Raw API Response (addToCart):', text);
+    const data = JSON.parse(text);
     if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
-    alert(`Added ${product.name} to cart!`);
+    alert(`Added ${product.name} to cart`);
   } catch (err) {
-    alert(`Error: ${err.message}`);
+    console.error('Cart add error:', err, text);
+    alert(`Error: ${err.message}. Item may still be added. Check cart.`);
   }
-}
+};
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('en-US', {
