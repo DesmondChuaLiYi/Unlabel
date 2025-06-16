@@ -9,12 +9,6 @@ export default defineConfig({
     emptyOutDir: true,
     minify: false,
     sourcemap: true,
-    rollupOptions: {
-      output: {
-        // Simplify chunking to avoid conflicts
-        manualChunks: undefined, // Remove manual chunking for now
-      },
-    },
   },
   base: '/',
   assetsInclude: ['**/*.jpg', '**/*.png', '**/*.jpeg'],

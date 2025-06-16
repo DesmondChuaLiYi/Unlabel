@@ -1,24 +1,24 @@
 <?php
-  ini_set('display_errors', 0); // Disable direct error output
-  ini_set('log_errors', 1);
-  ini_set('error_log', __DIR__ . '/php_errors.log'); // Log to file
-  error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php_errors.log');
+error_reporting(E_ALL);
 
-  ob_start(); // Start output buffering
-  header('Content-Type: application/json');
-  header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com'); // Specific origin
-  header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-  header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
-  header('Access-Control-Allow-Credentials: true'); // Enable credentials
+ob_start();
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
+header('Access-Control-Allow-Credentials: true');
 
-  if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-      error_log('checkout.php: Handling OPTIONS request');
-      http_response_code(200);
-      ob_end_clean();
-      exit;
-  }
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    error_log('get_profile.php: Handling OPTIONS request');
+    http_response_code(200);
+    ob_end_clean();
+    exit;
+}
 
-  session_start(); // Moved after CORS headers
+session_start();
 
 if (!isset($_SESSION['user'])) {
     echo json_encode(['error' => 'Not authenticated']);
@@ -38,10 +38,7 @@ try {
     $user = $stmt->fetch();
 
     if ($user) {
-        // Convert profile picture to base64 if it exists
-        if ($user['profile_picture']) {
-            $user['profile_picture'] = 'data:image/jpeg;base64,' . base64_encode($user['profile_picture']);
-        }
+        // Use the stored file path directly, no base64 conversion
         echo json_encode(['user' => $user]);
     } else {
         echo json_encode(['error' => 'User not found']);
@@ -49,3 +46,4 @@ try {
 } catch (PDOException $e) {
     echo json_encode(['error' => 'Failed to fetch profile: ' . $e->getMessage()]);
 }
+?>

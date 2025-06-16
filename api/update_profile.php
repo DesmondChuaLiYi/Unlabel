@@ -1,24 +1,24 @@
 <?php
-ini_set('display_errors', 0); // Disable direct error output
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php_errors.log'); // Log to file
+ini_set('error_log', __DIR__ . '/php_errors.log');
 error_reporting(E_ALL);
 
-ob_start(); // Start output buffering
+ob_start();
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com'); // Specific origin
-header('Access-Control-Allow-Methods: POST, OPTIONS'); // Methods used
+header('Access-Control-Allow-Origin: https://unlabel.lovestoblog.com');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept');
-header('Access-Control-Allow-Credentials: true'); // Enable credentials for potential session use
+header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    error_log('register.php: Handling OPTIONS request');
+    error_log('update_profile.php: Handling OPTIONS request');
     http_response_code(200);
     ob_end_clean();
     exit;
 }
 
-session_start(); // Moved after CORS headers 
+session_start();
 
 if (!isset($_SESSION['user'])) {
     echo json_encode(['error' => 'Not authenticated']);
@@ -29,41 +29,50 @@ require_once 'db_connect.php';
 
 try {
     $userId = $_SESSION['user']['id'];
-    $data = $_POST;
+    $data = $_POST; // Note: FormData might not populate $_POST directly; use file_get_contents for multipart
     $profilePhoto = $_FILES['profile_photo'] ?? null;
     $removePhoto = isset($_POST['remove_photo']) && $_POST['remove_photo'] === 'true';
-    $action = $data['action'] ?? 'update_profile'; // Default to profile update
+    $action = $data['action'] ?? 'update_profile';
 
     if ($action === 'update_address') {
-        // Handle address update only
-        if (isset($data['address'])) {
-            $stmt = $pdo->prepare("SELECT id FROM user_address WHERE user_id = ?");
-            $stmt->execute([$userId]);
-            $addressId = $stmt->fetchColumn();
+        // Handle address update
+        $stmt = $pdo->prepare("SELECT id FROM user_address WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $addressId = $stmt->fetchColumn();
 
-            if ($addressId) {
-                $stmt = $pdo->prepare("UPDATE user_address SET address = ?, city = ?, state = ?, zipCode = ?, country = ? WHERE id = ?");
-                $stmt->execute([
-                    $data['address'] ?? null,
-                    $data['city'] ?? null,
-                    $data['state'] ?? null,
-                    $data['zipCode'] ?? null,
-                    $data['country'] ?? null,
-                    $addressId
-                ]);
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO user_address (user_id, address, city, state, zipCode, country) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([
-                    $userId,
-                    $data['address'] ?? null,
-                    $data['city'] ?? null,
-                    $data['state'] ?? null,
-                    $data['zipCode'] ?? null,
-                    $data['country'] ?? null
-                ]);
-            }
+        if ($addressId) {
+            $stmt = $pdo->prepare("UPDATE user_address SET address = ?, city = ?, state = ?, zipCode = ?, country = ? WHERE id = ?");
+            $stmt->execute([
+                $data['address'] ?? null,
+                $data['city'] ?? null,
+                $data['state'] ?? null,
+                $data['zipCode'] ?? null,
+                $data['country'] ?? null,
+                $addressId
+            ]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO user_address (user_id, address, city, state, zipCode, country) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $userId,
+                $data['address'] ?? null,
+                $data['city'] ?? null,
+                $data['state'] ?? null,
+                $data['zipCode'] ?? null,
+                $data['country'] ?? null
+            ]);
         }
-        echo json_encode(['success' => true]); // No profile_picture needed for address update
+        // Update session with new address data
+        $stmt = $pdo->prepare("SELECT address, city, state, zipCode, country FROM user_address WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        $addressData = $stmt->fetch();
+        if ($addressData) {
+            $_SESSION['user']['address'] = $addressData['address'] ?? '';
+            $_SESSION['user']['city'] = $addressData['city'] ?? '';
+            $_SESSION['user']['state'] = $addressData['state'] ?? '';
+            $_SESSION['user']['zipCode'] = $addressData['zipCode'] ?? '';
+            $_SESSION['user']['country'] = $addressData['country'] ?? '';
+        }
+        echo json_encode(['success' => true]);
     } else {
         // Handle profile update (including password and photo)
         $stmt = $pdo->prepare("UPDATE user SET firstName = ?, lastName = ?, email = ?, phone = ?, birthDate = ? WHERE id = ?");
@@ -114,11 +123,23 @@ try {
             $profilePicture = $stmt->fetchColumn();
         }
 
+        // Update session with new profile data
+        $stmt = $pdo->prepare("SELECT firstName, lastName, email, phone, birthDate, profile_picture FROM user WHERE id = ?");
+        $stmt->execute([$userId]);
+        $profileData = $stmt->fetch();
+        if ($profileData) {
+            $_SESSION['user']['firstName'] = $profileData['firstName'] ?? '';
+            $_SESSION['user']['lastName'] = $profileData['lastName'] ?? '';
+            $_SESSION['user']['email'] = $profileData['email'] ?? '';
+            $_SESSION['user']['phone'] = $profileData['phone'] ?? '';
+            $_SESSION['user']['birthDate'] = $profileData['birthDate'] ?? '';
+            $_SESSION['user']['profile_picture'] = $profilePicture ?? $profileData['profile_picture'] ?? '';
+        }
         echo json_encode(['success' => true, 'profile_picture' => $profilePicture]);
     }
 } catch (PDOException | Exception $e) {
-    ob_clean(); // Clear any output buffer
-    error_log("Update error: " . $e->getMessage()); // Log the error
+    ob_clean();
+    error_log("Update error: " . $e->getMessage());
     echo json_encode(['error' => 'Failed to update profile: ' . $e->getMessage()]);
 }
 ?>
