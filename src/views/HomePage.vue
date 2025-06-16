@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+// import { ref, onMounted } from 'vue';
+// import { useRouter } from 'vue-router';
 import '../assets/css/home.css';
 import productsData from '../assets/data/products.json';
 

@@ -29,7 +29,10 @@ require_once 'db_connect.php';
 
 try {
     $userId = $_SESSION['user']['id'];
-    $data = $_POST; // Note: FormData might not populate $_POST directly; use file_get_contents for multipart
+
+    // Handle multipart/form-data (FormData from frontend)
+    $input = file_get_contents('php://input');
+    parse_str($input, $data);
     $profilePhoto = $_FILES['profile_photo'] ?? null;
     $removePhoto = isset($_POST['remove_photo']) && $_POST['remove_photo'] === 'true';
     $action = $data['action'] ?? 'update_profile';
@@ -66,11 +69,13 @@ try {
         $stmt->execute([$userId]);
         $addressData = $stmt->fetch();
         if ($addressData) {
-            $_SESSION['user']['address'] = $addressData['address'] ?? '';
-            $_SESSION['user']['city'] = $addressData['city'] ?? '';
-            $_SESSION['user']['state'] = $addressData['state'] ?? '';
-            $_SESSION['user']['zipCode'] = $addressData['zipCode'] ?? '';
-            $_SESSION['user']['country'] = $addressData['country'] ?? '';
+            $_SESSION['user'] = array_merge($_SESSION['user'], [
+                'address' => $addressData['address'] ?? '',
+                'city' => $addressData['city'] ?? '',
+                'state' => $addressData['state'] ?? '',
+                'zipCode' => $addressData['zipCode'] ?? '',
+                'country' => $addressData['country'] ?? '',
+            ]);
         }
         echo json_encode(['success' => true]);
     } else {
@@ -90,7 +95,7 @@ try {
             $stmt = $pdo->prepare("SELECT password_hash FROM user WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
-            if (password_verify($data['currentPassword'], $user['password_hash']) && $data['newPassword'] === $data['confirmPassword']) {
+            if ($user && password_verify($data['currentPassword'], $user['password_hash']) && $data['newPassword'] === $data['confirmPassword']) {
                 $newPasswordHash = password_hash($data['newPassword'], PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("UPDATE user SET password_hash = ? WHERE id = ?");
                 $stmt->execute([$newPasswordHash, $userId]);
@@ -104,23 +109,29 @@ try {
         if ($removePhoto) {
             $stmt = $pdo->prepare("UPDATE user SET profile_picture = NULL WHERE id = ?");
             $stmt->execute([$userId]);
-            if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/uploads/profile_' . $userId . '.jpg')) {
-                unlink($_SERVER['DOCUMENT_ROOT'] . '/uploads/profile_' . $userId . '.jpg');
+            $uploadPath = $_SERVER['DOCUMENT_ROOT'] . '/uploads/profile_' . $userId . '.jpg';
+            if (file_exists($uploadPath)) {
+                unlink($uploadPath);
             }
         } elseif ($profilePhoto && $profilePhoto['error'] === UPLOAD_ERR_OK) {
             $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/uploads/';
-            if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
             $fileName = 'profile_' . $userId . '.jpg';
             $targetFile = $uploadDir . $fileName;
             if (move_uploaded_file($profilePhoto['tmp_name'], $targetFile)) {
                 $stmt = $pdo->prepare("UPDATE user SET profile_picture = ? WHERE id = ?");
-                $stmt->execute(['/uploads/' . $fileName, $userId]);
-                $profilePicture = '/uploads/' . $fileName;
+                $stmt->execute(['https://unlabel.lovestoblog.com/uploads/' . $fileName, $userId]);
+                $profilePicture = 'https://unlabel.lovestoblog.com/uploads/' . $fileName;
             }
         } else {
             $stmt = $pdo->prepare("SELECT profile_picture FROM user WHERE id = ?");
             $stmt->execute([$userId]);
             $profilePicture = $stmt->fetchColumn();
+            if ($profilePicture && strpos($profilePicture, 'http') !== 0) {
+                $profilePicture = 'https://unlabel.lovestoblog.com' . $profilePicture;
+            }
         }
 
         // Update session with new profile data
@@ -128,12 +139,14 @@ try {
         $stmt->execute([$userId]);
         $profileData = $stmt->fetch();
         if ($profileData) {
-            $_SESSION['user']['firstName'] = $profileData['firstName'] ?? '';
-            $_SESSION['user']['lastName'] = $profileData['lastName'] ?? '';
-            $_SESSION['user']['email'] = $profileData['email'] ?? '';
-            $_SESSION['user']['phone'] = $profileData['phone'] ?? '';
-            $_SESSION['user']['birthDate'] = $profileData['birthDate'] ?? '';
-            $_SESSION['user']['profile_picture'] = $profilePicture ?? $profileData['profile_picture'] ?? '';
+            $_SESSION['user'] = array_merge($_SESSION['user'], [
+                'firstName' => $profileData['firstName'] ?? '',
+                'lastName' => $profileData['lastName'] ?? '',
+                'email' => $profileData['email'] ?? '',
+                'phone' => $profileData['phone'] ?? '',
+                'birthDate' => $profileData['birthDate'] ?? '',
+                'profile_picture' => $profilePicture ?? $profileData['profile_picture'] ?? '',
+            ]);
         }
         echo json_encode(['success' => true, 'profile_picture' => $profilePicture]);
     }

@@ -1,7 +1,8 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+// import { ref, reactive, computed, onMounted } from 'vue';
+// import { useRouter } from 'vue-router';
 import axios from 'axios'; // Add this import
+import '../assets/css/account.css';
 
 const router = useRouter();
 
@@ -55,7 +56,9 @@ onMounted(async () => {
       });
     } else {
       isLoggedIn.value = false;
-      router.push('/login');
+      if (router.currentRoute.value.path !== '/login') {
+        router.push('/login');
+      }
     }
   } catch (error) {
     console.error('Session check failed:', {
@@ -64,7 +67,9 @@ onMounted(async () => {
       data: error.response?.data,
     });
     isLoggedIn.value = false;
-    router.push('/login');
+    if (router.currentRoute.value.path !== '/login') {
+      router.push('/login');
+    }
   } finally {
     isLoading.value = false;
   }
