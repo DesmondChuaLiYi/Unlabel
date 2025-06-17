@@ -1,8 +1,8 @@
 <script setup>
-// import { ref, reactive, computed, onMounted } from 'vue';
-// import { useRouter } from 'vue-router';
-import axios from 'axios'; // Add this import
+// import { reactive, ref, computed, onMounted } from 'vue'; // Explicit imports to avoid ref/reactive errors
+import axios from 'axios';
 import '../assets/css/account.css';
+// import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
@@ -46,14 +46,26 @@ const maxDate = computed(() => {
 
 onMounted(async () => {
   try {
-    const response = await axios.get('/api/check_session.php', { withCredentials: true });
+    const loginSuccess = localStorage.getItem('loginSuccess');
+    if (loginSuccess) {
+      errors.form = 'Login successful! Welcome to your account.';
+      alertType.value = 'alert-success';
+      showAlert.value = true;
+      setTimeout(() => {
+        showAlert.value = false;
+        localStorage.removeItem('loginSuccess');
+      }, 5000);
+    }
+    
+    const response = await axios.get('/api/get_profile.php', { withCredentials: true });
     const data = response.data;
-    console.log('Session check response:', data);
+    console.log('Full get_profile.php response:', data);
     if (data.success) {
       isLoggedIn.value = true;
       Object.keys(data.user).forEach((key) => {
         if (key in userData) userData[key] = data.user[key] || '';
       });
+      console.log('User data after fetch:', userData);
     } else {
       isLoggedIn.value = false;
       if (router.currentRoute.value.path !== '/login') {
@@ -61,7 +73,7 @@ onMounted(async () => {
       }
     }
   } catch (error) {
-    console.error('Session check failed:', {
+    console.error('Profile fetch failed:', {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
@@ -189,14 +201,19 @@ const saveProfileChanges = async () => {
 
     const response = await axios.post('/api/update_profile.php', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      withCredentials: true,
     });
 
     const data = response.data;
+    console.log('Profile update response:', data);
     if (data.success) {
-      Object.keys(profileForm).forEach((key) => {
-        if (key in userData) userData[key] = profileForm[key];
+      // Refetch full profile to update userData
+      const fetchResponse = await axios.get('/api/get_profile.php', { withCredentials: true });
+      const fetchData = fetchResponse.data;
+      Object.keys(fetchData.user).forEach((key) => {
+        if (key in userData) userData[key] = fetchData.user[key] || '';
       });
-      userData.profile_picture = data.profile_picture || '';
+      console.log('User data after profile update:', userData);
       if (isEditingPassword.value) {
         errors.form = 'Profile and password updated successfully!';
       } else {
@@ -237,15 +254,19 @@ const saveAddressChanges = async () => {
 
     const response = await axios.post('/api/update_profile.php', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      withCredentials: true,
     });
 
     const data = response.data;
+    console.log('Address update response:', data);
     if (data.success) {
-      userData.address = addressForm.address;
-      userData.city = addressForm.city;
-      userData.state = addressForm.state;
-      userData.zipCode = addressForm.zipCode;
-      userData.country = addressForm.country;
+      // Refetch full profile to update userData
+      const fetchResponse = await axios.get('/api/get_profile.php', { withCredentials: true });
+      const fetchData = fetchResponse.data;
+      Object.keys(fetchData.user).forEach((key) => {
+        if (key in userData) userData[key] = fetchData.user[key] || '';
+      });
+      console.log('User data after address update:', userData);
       errors.form = 'Address updated successfully!';
       alertType.value = 'alert-success';
       showAlert.value = true;
@@ -335,6 +356,7 @@ const deleteAccount = async () => {
 </script>
 
 <template>
+  <!-- Template remains unchanged -->
   <div class="account-page">
     <div class="container">
       <div class="d-flex justify-content-between align-items-center mb-4">
@@ -375,7 +397,7 @@ const deleteAccount = async () => {
                 <div class="row">
                   <div class="col-md-3 text-center mb-4 mb-md-0">
                     <div class="avatar-wrapper">
-                      <img v-if="userData.profile_picture" :src="userData.profile_picture" class="profile-img" alt="Profile">
+                      <img v-if="userData.profile_picture" :src="userData.profile_picture" class="profile-img" alt="Profile" @error="userData.profile_picture = ''">
                       <div v-else class="placeholder-img profile-img">profile</div>
                     </div>
                   </div>
@@ -411,7 +433,7 @@ const deleteAccount = async () => {
                   <div class="row">
                     <div class="col-md-3 text-center mb-4 mb-md-0">
                       <div class="avatar-wrapper">
-                        <img v-if="userData.profile_picture && !removePhoto" :src="userData.profile_picture" class="profile-img" alt="Profile">
+                        <img v-if="userData.profile_picture && !removePhoto" :src="userData.profile_picture" class="profile-img" alt="Profile" @error="userData.profile_picture = ''">
                         <div v-if="!userData.profile_picture || removePhoto" class="placeholder-img profile-img">profile</div>
                         <div class="mt-3">
                           <label for="profile-photo-upload" class="btn btn-outline-primary btn-sm">

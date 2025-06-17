@@ -1,6 +1,6 @@
 <script setup>
-import { ref, reactive } from 'vue';
-import { useRouter } from 'vue-router';
+// import { ref, reactive } from 'vue';
+// import { useRouter } from 'vue-router';
 import '../assets/css/auth.css';
 
 const router = useRouter();

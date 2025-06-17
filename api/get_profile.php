@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 session_start();
 
 if (!isset($_SESSION['user'])) {
+    error_log('get_profile.php: Not authenticated');
     echo json_encode(['error' => 'Not authenticated']);
     exit;
 }
@@ -30,8 +31,7 @@ require_once 'db_connect.php';
 try {
     $userId = $_SESSION['user']['id'];
     $stmt = $pdo->prepare("SELECT u.id, u.firstName, u.lastName, u.email, u.birthDate, u.phone, u.profile_picture,
-                          COALESCE(ua.address, '') AS address, COALESCE(ua.city, '') AS city, COALESCE(ua.state, '') AS state,
-                          COALESCE(ua.zipCode, '') AS zipCode, COALESCE(ua.country, '') AS country 
+                          ua.address, ua.city, ua.state, ua.zipCode, ua.country 
                           FROM user u 
                           LEFT JOIN user_address ua ON u.id = ua.user_id 
                           WHERE u.id = ?");
@@ -39,25 +39,20 @@ try {
     $user = $stmt->fetch();
 
     if ($user) {
-        // Update session with full user data
-        $_SESSION['user'] = array_merge($_SESSION['user'], [
-            'firstName' => $user['firstName'] ?? '',
-            'lastName' => $user['lastName'] ?? '',
-            'email' => $user['email'] ?? '',
-            'birthDate' => $user['birthDate'] ?? '',
-            'phone' => $user['phone'] ?? '',
-            'profile_picture' => $user['profile_picture'] ?? '',
-            'address' => $user['address'] ?? '',
-            'city' => $user['city'] ?? '',
-            'state' => $user['state'] ?? '',
-            'zipCode' => $user['zipCode'] ?? '',
-            'country' => $user['country'] ?? '',
-        ]);
+        // Convert profile picture to base64 if it exists
+        if ($user['profile_picture']) {
+            $user['profile_picture'] = 'data:image/jpeg;base64,' . base64_encode($user['profile_picture']);
+        }
+        error_log('get_profile.php: User data fetched successfully for userId ' . $userId);
         echo json_encode(['success' => true, 'user' => $user]);
     } else {
+        error_log('get_profile.php: User not found for userId ' . $userId);
         echo json_encode(['error' => 'User not found']);
     }
 } catch (PDOException $e) {
+    error_log('get_profile.php: Database error - ' . $e->getMessage());
     echo json_encode(['error' => 'Failed to fetch profile: ' . $e->getMessage()]);
+} finally {
+    ob_end_flush();
 }
 ?>
